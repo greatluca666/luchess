@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WsClient } from '../src/wsClient.js';
 
 class FakeWebSocket {
@@ -38,6 +38,10 @@ beforeEach(() => {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => store.set(k, v),
   };
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('WsClient', () => {
