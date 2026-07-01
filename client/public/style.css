@@ -1,0 +1,7 @@
+body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; }
+.cg-wrap { width: 480px; height: 480px; position: relative; margin: 0 auto; }
+.clock { font-size: 2rem; text-align: center; font-variant-numeric: tabular-nums; }
+.controls { display: flex; gap: 0.5rem; justify-content: center; margin: 1rem 0; }
+.offer-banner { background: #fffae0; border: 1px solid #d9c86a; padding: 0.5rem; text-align: center; margin: 0.5rem 0; }
+.move-list { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; padding: 0; }
+.create-form { display: flex; flex-direction: column; gap: 1rem; align-items: flex-start; }

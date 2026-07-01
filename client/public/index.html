@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>luchess</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="create-form">
+    <h1>luchess</h1>
+    <label>
+      时限
+      <select id="time-control">
+        <option value="0">无限时</option>
+        <option value="300000">5+0</option>
+        <option value="600000">10+0</option>
+        <option value="900000">15+0</option>
+      </select>
+    </label>
+    <label>
+      执子颜色
+      <select id="color-pref">
+        <option value="random">随机</option>
+        <option value="white">白方</option>
+        <option value="black">黑方</option>
+      </select>
+    </label>
+    <button id="create-btn">创建对局</button>
+    <p><a href="/games">历史对局</a></p>
+  </main>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

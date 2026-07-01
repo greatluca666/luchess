@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>luchess - 对局</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/chessground/chessground.base.css" />
+  <link rel="stylesheet" href="/chessground/chessground.brown.css" />
+  <link rel="stylesheet" href="/chessground/chessground.cburnett.css" />
+</head>
+<body>
+  <div class="game-layout">
+    <div class="clock" id="clock-top">--:--</div>
+    <div id="board" class="cg-wrap"></div>
+    <div class="clock" id="clock-bottom">--:--</div>
+    <div class="controls">
+      <button id="resign-btn">认输</button>
+      <button id="draw-btn">求和</button>
+      <button id="undo-btn">悔棋</button>
+    </div>
+    <div id="offer-banner" class="offer-banner" hidden></div>
+    <ol id="move-list" class="move-list"></ol>
+  </div>
+  <script type="module" src="/game.js"></script>
+</body>
+</html>
