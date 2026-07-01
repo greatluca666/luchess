@@ -1,0 +1,120 @@
+// client/src/game.ts
+import { Chessground } from 'chessground';
+import type { Key, Dests } from 'chessground/types';
+import { Chess } from 'chess.js';
+import { WsClient } from './wsClient.js';
+import { formatClock } from './clock.js';
+
+const roomId = location.pathname.split('/').pop()!;
+const boardEl = document.getElementById('board')!;
+const clockTop = document.getElementById('clock-top')!;
+const clockBottom = document.getElementById('clock-bottom')!;
+const moveListEl = document.getElementById('move-list')!;
+const offerBanner = document.getElementById('offer-banner')!;
+const resignBtn = document.getElementById('resign-btn') as HTMLButtonElement;
+const drawBtn = document.getElementById('draw-btn') as HTMLButtonElement;
+const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
+
+let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
+let localChess = new Chess();
+
+const ground = Chessground(boardEl, {
+  movable: { free: false, color: undefined },
+  events: { move: (orig: Key, dest: Key) => sendMove(orig, dest) },
+});
+
+const ws = new WsClient({
+  roomId,
+  onMessage: (msg) => {
+    if (msg.type === 'joined') {
+      mySeat = msg.seat;
+    } else if (msg.type === 'state') {
+      applyState(msg);
+    } else if (msg.type === 'error') {
+      console.warn('server error:', msg.message);
+    }
+  },
+});
+
+function sendMove(from: string, to: string): void {
+  ws.send({ type: 'move', from, to, promotion: 'q' });
+}
+
+function computeDests(chess: Chess): Dests {
+  const dests: Dests = new Map();
+  for (const m of chess.moves({ verbose: true })) {
+    const from = m.from as Key;
+    const to = m.to as Key;
+    const list = dests.get(from) ?? [];
+    list.push(to);
+    dests.set(from, list);
+  }
+  return dests;
+}
+
+function applyState(state: any): void {
+  localChess.load(state.fen);
+  const turnColor = state.turn === 'white' ? 'white' : 'black';
+
+  ground.set({
+    fen: state.fen,
+    turnColor,
+    movable: {
+      color: mySeat === 'white' || mySeat === 'black' ? mySeat : undefined,
+      dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
+    },
+    check: localChess.inCheck(),
+  });
+
+  clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
+  clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);
+
+  moveListEl.innerHTML = state.historySan
+    .map((san: string, i: number) => `<li>${i % 2 === 0 ? `${i / 2 + 1}.` : ''} ${san}</li>`)
+    .join('');
+
+  renderOfferBanner(state);
+  renderControls(state);
+
+  if (state.status === 'finished') {
+    offerBanner.hidden = false;
+    offerBanner.textContent = `对局结束: ${state.result} (${state.resultReason})`;
+  }
+}
+
+function renderOfferBanner(state: any): void {
+  if (state.status !== 'playing') return;
+  if (state.drawOfferBy && state.drawOfferBy !== mySeat) {
+    offerBanner.hidden = false;
+    offerBanner.innerHTML = `对方求和, <button id="accept-draw">同意</button> <button id="reject-draw">拒绝</button>`;
+    document.getElementById('accept-draw')!.addEventListener('click', () =>
+      ws.send({ type: 'respondDraw', accept: true })
+    );
+    document.getElementById('reject-draw')!.addEventListener('click', () =>
+      ws.send({ type: 'respondDraw', accept: false })
+    );
+  } else if (state.undoOfferBy && state.undoOfferBy !== mySeat) {
+    offerBanner.hidden = false;
+    offerBanner.innerHTML = `对方请求悔棋, <button id="accept-undo">同意</button> <button id="reject-undo">拒绝</button>`;
+    document.getElementById('accept-undo')!.addEventListener('click', () =>
+      ws.send({ type: 'respondUndo', accept: true })
+    );
+    document.getElementById('reject-undo')!.addEventListener('click', () =>
+      ws.send({ type: 'respondUndo', accept: false })
+    );
+  } else {
+    offerBanner.hidden = true;
+  }
+}
+
+function renderControls(state: any): void {
+  const isPlayer = mySeat === 'white' || mySeat === 'black';
+  const canAct = isPlayer && state.status === 'playing';
+  resignBtn.disabled = !canAct;
+  drawBtn.disabled = !canAct || state.drawOfferBy === mySeat;
+  undoBtn.disabled = !canAct || state.undoOfferBy === mySeat || state.historySan.length === 0;
+}
+
+resignBtn.addEventListener('click', () => ws.send({ type: 'resign' }));
+drawBtn.addEventListener('click', () => ws.send({ type: 'offerDraw' }));
+undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
