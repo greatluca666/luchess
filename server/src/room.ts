@@ -145,6 +145,7 @@ export class Room {
   }
 
   respondDraw(seat: Seat, accept: boolean): ActionResult {
+    if (this.status !== 'playing') return { ok: false, error: 'game is not in progress' };
     if (seat === 'spectator') return { ok: false, error: 'spectators cannot respond' };
     if (!this.drawOfferBy || this.drawOfferBy === seat) {
       return { ok: false, error: 'no pending draw offer for you' };
@@ -163,6 +164,7 @@ export class Room {
   }
 
   respondUndo(seat: Seat, accept: boolean): ActionResult {
+    if (this.status !== 'playing') return { ok: false, error: 'game is not in progress' };
     if (seat === 'spectator') return { ok: false, error: 'spectators cannot respond' };
     if (!this.undoOfferBy || this.undoOfferBy === seat) {
       return { ok: false, error: 'no pending undo offer for you' };

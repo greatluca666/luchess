@@ -87,6 +87,31 @@ describe('Room', () => {
     expect(room.drawOfferBy).toBeNull();
   });
 
+  it('rejects a draw response after the game has already finished by another route', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    room.offerDraw('white');
+    room.resign('white');
+    expect(room.result).toBe('0-1');
+    const res = room.respondDraw('black', true);
+    expect(res.ok).toBe(false);
+    expect(room.result).toBe('0-1');
+  });
+
+  it('rejects an undo response after the game has already finished by another route', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    room.move('white', { from: 'e2', to: 'e4' });
+    room.offerUndo('white');
+    room.resign('white');
+    expect(room.result).toBe('0-1');
+    const res = room.respondUndo('black', true);
+    expect(res.ok).toBe(false);
+    expect(room.getSnapshot().historySan).toContain('e4');
+  });
+
   it('undoes the last move when the opponent accepts', () => {
     const room = new Room('r1', 0, 'white');
     room.connect(fakeWs());
