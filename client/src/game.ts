@@ -1,7 +1,9 @@
 // client/src/game.ts
 import { Chessground } from 'chessground';
 import type { Key, Dests } from 'chessground/types';
-import { Chess } from 'chess.js';
+import { Chess } from 'chessops/chess';
+import { parseFen, makeFen } from 'chessops/fen';
+import { makeSquare } from 'chessops/util';
 import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
@@ -20,7 +22,7 @@ const inviteLinkInput = document.getElementById('invite-link') as HTMLInputEleme
 const copyInviteBtn = document.getElementById('copy-invite-btn') as HTMLButtonElement;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
-let localChess = new Chess();
+let localChess: Chess = Chess.default();
 
 const ground = Chessground(boardEl, {
   movable: { free: false, color: undefined },
@@ -44,20 +46,18 @@ function sendMove(from: string, to: string): void {
   ws.send({ type: 'move', from, to, promotion: 'q' });
 }
 
-function computeDests(chess: Chess): Dests {
+function computeDests(pos: Chess): Dests {
   const dests: Dests = new Map();
-  for (const m of chess.moves({ verbose: true })) {
-    const from = m.from as Key;
-    const to = m.to as Key;
-    const list = dests.get(from) ?? [];
-    list.push(to);
-    dests.set(from, list);
+  for (const [from, toSquares] of pos.allDests()) {
+    const toList: Key[] = [];
+    for (const to of toSquares) toList.push(makeSquare(to) as Key);
+    if (toList.length > 0) dests.set(makeSquare(from) as Key, toList);
   }
   return dests;
 }
 
 function applyState(state: any): void {
-  localChess.load(state.fen);
+  localChess = Chess.fromSetup(parseFen(state.fen).unwrap()).unwrap();
   const turnColor = state.turn === 'white' ? 'white' : 'black';
 
   ground.set({
@@ -68,7 +68,7 @@ function applyState(state: any): void {
       color: mySeat === 'white' || mySeat === 'black' ? mySeat : undefined,
       dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
     },
-    check: localChess.inCheck(),
+    check: localChess.isCheck(),
   });
 
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
