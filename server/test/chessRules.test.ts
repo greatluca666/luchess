@@ -45,4 +45,18 @@ describe('chessRules', () => {
     expect(result.result).toBe('1/2-1/2');
     expect(result.resultReason).toBe('insufficient-material');
   });
+
+  it('accepts an ordinary move even when the caller always sends a default promotion letter (matching real client behavior)', () => {
+    const pos = createGame();
+    const result = applyMove(pos, { from: 'e2', to: 'e4', promotion: 'q' });
+    expect(result.ok).toBe(true);
+    expect(result.san).toBe('e4');
+  });
+
+  it('applies an actual pawn promotion using the requested role', () => {
+    const pos = createGame('chess', '8/4P3/8/3k4/8/8/8/4K3 w - - 0 1');
+    const result = applyMove(pos, { from: 'e7', to: 'e8', promotion: 'q' });
+    expect(result.ok).toBe(true);
+    expect(result.san).toBe('e8=Q');
+  });
 });

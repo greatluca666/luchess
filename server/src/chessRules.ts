@@ -2,7 +2,7 @@ import { defaultPosition, setupPosition } from 'chessops/variant';
 import type { Rules } from 'chessops/types';
 import type { Position } from 'chessops/chess';
 import { parseFen } from 'chessops/fen';
-import { parseSquare } from 'chessops/util';
+import { parseSquare, squareRank } from 'chessops/util';
 import { makeSan } from 'chessops/san';
 
 export type Role = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
@@ -56,21 +56,34 @@ export function createGame(rules: Rules = 'chess', fen?: string): Position {
   return setupPosition(rules, setup).unwrap();
 }
 
-export function toChessopsMove(move: MoveInput): ChessopsMove | undefined {
+// Determines whether from -> to is an actual pawn-to-last-rank promotion,
+// by checking the board position rather than trusting caller-supplied input.
+// chessops' isLegal/play reject any move carrying a `promotion` role unless
+// it truly is a pawn reaching the back rank, so this must reflect the real
+// board state.
+export function isPromotionMove(pos: Position, from: number, to: number): boolean {
+  const piece = pos.board.get(from);
+  if (!piece || piece.role !== 'pawn') return false;
+  const rank = squareRank(to);
+  return rank === 0 || rank === 7;
+}
+
+export function toChessopsMove(pos: Position, move: MoveInput): ChessopsMove | undefined {
   const from = parseSquare(move.from);
   const to = parseSquare(move.to);
   if (from === undefined || to === undefined) return undefined;
-  // Only attach a promotion role when the caller actually specified one.
-  // chessops treats `promotion` as semantically significant for isLegal/play:
-  // a move carrying a promotion role is only legal if it's actually a pawn
-  // move to the last rank, so defaulting it to 'queen' unconditionally would
-  // make ordinary non-promotion moves (e.g. e2-e4) illegal.
-  if (move.promotion === undefined) return { from, to };
-  return { from, to, promotion: promotionRole(move.promotion) };
+  // Only attach a promotion role when the move is actually a pawn reaching
+  // the last rank. The real client always sends `promotion: 'q'` on every
+  // move (even ordinary ones like e2-e4), so we cannot rely on the caller's
+  // input to decide this — it must be derived from the position itself.
+  if (isPromotionMove(pos, from, to)) {
+    return { from, to, promotion: promotionRole(move.promotion) };
+  }
+  return { from, to };
 }
 
 export function applyMove(pos: Position, move: MoveInput): MoveResult {
-  const chessMove = toChessopsMove(move);
+  const chessMove = toChessopsMove(pos, move);
   if (!chessMove || !pos.isLegal(chessMove)) {
     return { ok: false, error: 'illegal move', gameOver: false };
   }
