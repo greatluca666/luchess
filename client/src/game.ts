@@ -136,13 +136,14 @@ undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
 
 copyInviteBtn.addEventListener('click', async () => {
   const link = location.href;
+  const original = copyInviteBtn.textContent;
   try {
     await navigator.clipboard.writeText(link);
+    copyInviteBtn.textContent = '已复制!';
   } catch {
     inviteLinkInput.select();
+    copyInviteBtn.textContent = '已选中, 按 Ctrl+C 复制';
   }
-  const original = copyInviteBtn.textContent;
-  copyInviteBtn.textContent = '已复制!';
   setTimeout(() => {
     copyInviteBtn.textContent = original;
   }, 2000);
