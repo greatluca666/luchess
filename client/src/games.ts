@@ -1,6 +1,9 @@
 // client/src/games.ts
 import { Chessground } from 'chessground';
-import { Chess } from 'chess.js';
+import { Chess } from 'chessops/chess';
+import { makeFen } from 'chessops/fen';
+import { parseSan } from 'chessops/san';
+import { extractSanMoves } from './pgnReplay.js';
 
 const listEl = document.getElementById('games-list')!;
 const boardEl = document.getElementById('replay-board')!;
@@ -9,7 +12,6 @@ const nextBtn = document.getElementById('replay-next') as HTMLButtonElement;
 
 const ground = Chessground(boardEl, { viewOnly: true });
 
-let replayChess = new Chess();
 let replayMoves: string[] = [];
 let replayIndex = 0;
 
@@ -30,29 +32,34 @@ async function loadList(): Promise<void> {
 async function loadReplay(id: string): Promise<void> {
   const res = await fetch(`/api/games/${id}`);
   const game = await res.json();
-  const parsed = new Chess();
-  parsed.loadPgn(game.pgn);
-  replayMoves = parsed.history();
-  replayChess = new Chess();
+  replayMoves = extractSanMoves(game.pgn);
   replayIndex = 0;
   render();
 }
 
+function positionAt(index: number): Chess {
+  const pos = Chess.default();
+  for (let i = 0; i < index; i++) {
+    const move = parseSan(pos, replayMoves[i]);
+    if (!move) break;
+    pos.play(move);
+  }
+  return pos;
+}
+
 function render(): void {
-  ground.set({ fen: replayChess.fen() });
+  const pos = positionAt(replayIndex);
+  ground.set({ fen: makeFen(pos.toSetup()) });
 }
 
 prevBtn.addEventListener('click', () => {
   if (replayIndex === 0) return;
   replayIndex -= 1;
-  replayChess = new Chess();
-  for (let i = 0; i < replayIndex; i++) replayChess.move(replayMoves[i]);
   render();
 });
 
 nextBtn.addEventListener('click', () => {
   if (replayIndex >= replayMoves.length) return;
-  replayChess.move(replayMoves[replayIndex]);
   replayIndex += 1;
   render();
 });
