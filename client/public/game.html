@@ -9,24 +9,26 @@
   <link rel="stylesheet" href="/chessground/chessground.cburnett.css" />
 </head>
 <body>
-  <div class="game-layout">
-    <div id="invite-panel" class="invite-panel" hidden>
-      <p>等待对手加入... 分享链接给你朋友:</p>
-      <div class="invite-row">
-        <input id="invite-link" type="text" readonly />
-        <button id="copy-invite-btn">复制邀请链接</button>
+  <div class="page">
+    <div class="game-layout card">
+      <div id="invite-panel" class="invite-panel" hidden>
+        <p>等待对手加入... 分享链接给你朋友:</p>
+        <div class="invite-row">
+          <input id="invite-link" type="text" readonly />
+          <button id="copy-invite-btn">复制邀请链接</button>
+        </div>
       </div>
+      <div class="clock" id="clock-top">--:--</div>
+      <div id="board" class="cg-wrap"></div>
+      <div class="clock" id="clock-bottom">--:--</div>
+      <div class="controls">
+        <button id="resign-btn">认输</button>
+        <button id="draw-btn">求和</button>
+        <button id="undo-btn">悔棋</button>
+      </div>
+      <div id="offer-banner" class="offer-banner" hidden></div>
+      <ol id="move-list" class="move-list"></ol>
     </div>
-    <div class="clock" id="clock-top">--:--</div>
-    <div id="board" class="cg-wrap"></div>
-    <div class="clock" id="clock-bottom">--:--</div>
-    <div class="controls">
-      <button id="resign-btn">认输</button>
-      <button id="draw-btn">求和</button>
-      <button id="undo-btn">悔棋</button>
-    </div>
-    <div id="offer-banner" class="offer-banner" hidden></div>
-    <ol id="move-list" class="move-list"></ol>
   </div>
   <script type="module" src="/game.js"></script>
 </body>
