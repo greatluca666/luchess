@@ -1,6 +1,8 @@
 // server/src/room.ts
 import type WebSocket from 'ws';
-import { applyMove, createGame, type MoveInput } from './chessRules.js';
+import { applyMove, createGame, toChessopsMove, type ChessopsMove, type MoveInput } from './chessRules.js';
+import type { Position } from 'chessops/chess';
+import { makeFen } from 'chessops/fen';
 import { generateToken } from './idGen.js';
 
 export type Color = 'white' | 'black';
@@ -19,6 +21,8 @@ export interface StateSnapshot {
   undoOfferBy: Color | null;
   result: string | null;
   resultReason: string | null;
+  variant: 'chess';
+  chess960: false;
 }
 
 interface SeatInfo {
@@ -43,19 +47,37 @@ export class Room {
 
   private readonly now: () => number;
   private readonly colorPref: Color | 'random';
-  private chess = createGame();
+  private chess: Position;
+  private readonly initialFen: string;
+  private moveHistorySan: string[] = [];
+  private moves: ChessopsMove[] = [];
+  private repetitionCounts = new Map<string, number>();
   private clocks: { white: number; black: number };
   private lastMoveAt: number | null = null;
   private seats: { white: SeatInfo | null; black: SeatInfo | null } = { white: null, black: null };
   private connections = new Map<WebSocket, Seat>();
   private persisted = false;
 
-  constructor(id: string, timeControlMs: number, colorPref: Color | 'random', now: () => number = Date.now) {
+  constructor(
+    id: string,
+    timeControlMs: number,
+    colorPref: Color | 'random',
+    now: () => number = Date.now,
+    startFen?: string
+  ) {
     this.id = id;
     this.timeControlMs = timeControlMs;
     this.clocks = { white: timeControlMs, black: timeControlMs };
     this.colorPref = colorPref;
     this.now = now;
+    this.chess = createGame('chess', startFen);
+    this.initialFen = makeFen(this.chess.toSetup());
+    // The game's starting position is itself the first occurrence for
+    // threefold-repetition purposes (per the FIDE rule), so it must be
+    // recorded once here — otherwise a position that returns to the exact
+    // start only twice via played moves would never reach a recorded count
+    // of 3.
+    this.recordAndCountRepetition();
   }
 
   connect(ws: WebSocket, token?: string): { seat: Seat; token?: string } {
@@ -110,11 +132,18 @@ export class Room {
   move(seat: Seat, input: MoveInput): ActionResult {
     if (this.status !== 'playing') return { ok: false, error: 'game is not in progress' };
     if (seat === 'spectator') return { ok: false, error: 'spectators cannot move' };
-    const turnColor: Color = this.chess.turn() === 'w' ? 'white' : 'black';
+    const turnColor: Color = this.chess.turn === 'white' ? 'white' : 'black';
     if (seat !== turnColor) return { ok: false, error: 'not your turn' };
+
+    const chessMove = toChessopsMove(this.chess, input);
+    if (!chessMove) return { ok: false, error: 'illegal move' };
 
     const result = applyMove(this.chess, input);
     if (!result.ok) return { ok: false, error: result.error };
+
+    this.moveHistorySan.push(result.san!);
+    this.moves.push(chessMove);
+    const repetitionCount = this.recordAndCountRepetition();
 
     const now = this.now();
     if (this.timeControlMs > 0 && this.lastMoveAt !== null) {
@@ -126,8 +155,19 @@ export class Room {
 
     if (result.gameOver) {
       this.finish(result.result!, result.resultReason!);
+    } else if (this.chess.halfmoves >= 100) {
+      this.finish('1/2-1/2', 'fifty-move');
+    } else if (repetitionCount >= 3) {
+      this.finish('1/2-1/2', 'threefold-repetition');
     }
     return { ok: true };
+  }
+
+  private recordAndCountRepetition(): number {
+    const key = makeFen(this.chess.toSetup(), { epd: true });
+    const count = (this.repetitionCounts.get(key) ?? 0) + 1;
+    this.repetitionCounts.set(key, count);
+    return count;
   }
 
   resign(seat: Seat): ActionResult {
@@ -158,7 +198,7 @@ export class Room {
   offerUndo(seat: Seat): ActionResult {
     if (this.status !== 'playing') return { ok: false, error: 'game is not in progress' };
     if (seat === 'spectator') return { ok: false, error: 'spectators cannot offer undo' };
-    if (this.chess.history().length === 0) return { ok: false, error: 'no move to undo' };
+    if (this.moves.length === 0) return { ok: false, error: 'no move to undo' };
     this.undoOfferBy = seat;
     return { ok: true };
   }
@@ -170,16 +210,31 @@ export class Room {
       return { ok: false, error: 'no pending undo offer for you' };
     }
     if (accept) {
-      this.chess.undo();
+      this.moveHistorySan.pop();
+      this.moves.pop();
+      this.rebuildPosition();
       this.lastMoveAt = this.now();
     }
     this.undoOfferBy = null;
     return { ok: true };
   }
 
+  private rebuildPosition(): void {
+    this.chess = createGame('chess', this.initialFen);
+    this.repetitionCounts.clear();
+    // Mirror live play exactly: the pre-move-1 starting position is never
+    // recorded during normal play (recordAndCountRepetition only runs after
+    // a move), so don't record it here either — only count positions that
+    // result from a played move.
+    for (const m of this.moves) {
+      this.chess.play(m);
+      this.recordAndCountRepetition();
+    }
+  }
+
   checkTimeout(): boolean {
     if (this.status !== 'playing' || this.timeControlMs === 0 || this.lastMoveAt === null) return false;
-    const turnColor: Color = this.chess.turn() === 'w' ? 'white' : 'black';
+    const turnColor: Color = this.chess.turn === 'white' ? 'white' : 'black';
     const elapsed = this.now() - this.lastMoveAt;
     const remaining = this.clocks[turnColor] - elapsed;
     if (remaining <= 0) {
@@ -191,7 +246,7 @@ export class Room {
   }
 
   getSnapshot(): StateSnapshot {
-    const turnColor: Color = this.chess.turn() === 'w' ? 'white' : 'black';
+    const turnColor: Color = this.chess.turn === 'white' ? 'white' : 'black';
     let clocks = { ...this.clocks };
     if (this.status === 'playing' && this.timeControlMs > 0 && this.lastMoveAt !== null) {
       const elapsed = this.now() - this.lastMoveAt;
@@ -200,20 +255,27 @@ export class Room {
     return {
       roomId: this.id,
       status: this.status,
-      fen: this.chess.fen(),
+      fen: makeFen(this.chess.toSetup()),
       turn: turnColor,
-      historySan: this.chess.history(),
+      historySan: this.moveHistorySan,
       clocks,
       timeControlMs: this.timeControlMs,
       drawOfferBy: this.drawOfferBy,
       undoOfferBy: this.undoOfferBy,
       result: this.result,
       resultReason: this.resultReason,
+      variant: 'chess',
+      chess960: false,
     };
   }
 
   getPgn(): string {
-    return this.chess.pgn();
+    const parts: string[] = [];
+    this.moveHistorySan.forEach((san, i) => {
+      if (i % 2 === 0) parts.push(`${i / 2 + 1}.`);
+      parts.push(san);
+    });
+    return parts.join(' ');
   }
 
   seatColorFor(ws: WebSocket): Seat | undefined {
