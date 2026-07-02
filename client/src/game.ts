@@ -4,6 +4,7 @@ import type { Key, Dests } from 'chessground/types';
 import { Chess } from 'chess.js';
 import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
+import { shouldShowInvitePanel } from './invitePanel.js';
 
 const roomId = location.pathname.split('/').pop()!;
 const boardEl = document.getElementById('board')!;
@@ -14,6 +15,9 @@ const offerBanner = document.getElementById('offer-banner')!;
 const resignBtn = document.getElementById('resign-btn') as HTMLButtonElement;
 const drawBtn = document.getElementById('draw-btn') as HTMLButtonElement;
 const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
+const invitePanel = document.getElementById('invite-panel')!;
+const inviteLinkInput = document.getElementById('invite-link') as HTMLInputElement;
+const copyInviteBtn = document.getElementById('copy-invite-btn') as HTMLButtonElement;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
 let localChess = new Chess();
@@ -74,12 +78,22 @@ function applyState(state: any): void {
     .map((san: string, i: number) => `<li>${i % 2 === 0 ? `${i / 2 + 1}.` : ''} ${san}</li>`)
     .join('');
 
+  renderInvitePanel(state);
   renderOfferBanner(state);
   renderControls(state);
 
   if (state.status === 'finished') {
     offerBanner.hidden = false;
     offerBanner.textContent = `对局结束: ${state.result} (${state.resultReason})`;
+  }
+}
+
+function renderInvitePanel(state: any): void {
+  if (shouldShowInvitePanel(state.status)) {
+    invitePanel.hidden = false;
+    inviteLinkInput.value = location.href;
+  } else {
+    invitePanel.hidden = true;
   }
 }
 
@@ -119,3 +133,17 @@ function renderControls(state: any): void {
 resignBtn.addEventListener('click', () => ws.send({ type: 'resign' }));
 drawBtn.addEventListener('click', () => ws.send({ type: 'offerDraw' }));
 undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
+
+copyInviteBtn.addEventListener('click', async () => {
+  const link = location.href;
+  try {
+    await navigator.clipboard.writeText(link);
+  } catch {
+    inviteLinkInput.select();
+  }
+  const original = copyInviteBtn.textContent;
+  copyInviteBtn.textContent = '已复制!';
+  setTimeout(() => {
+    copyInviteBtn.textContent = original;
+  }, 2000);
+});
