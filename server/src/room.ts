@@ -222,10 +222,10 @@ export class Room {
   private rebuildPosition(): void {
     this.chess = createGame('chess', this.initialFen);
     this.repetitionCounts.clear();
-    // Mirror live play exactly: the pre-move-1 starting position is never
-    // recorded during normal play (recordAndCountRepetition only runs after
-    // a move), so don't record it here either — only count positions that
-    // result from a played move.
+    // The rebuilt starting position is occurrence #1, exactly like a fresh
+    // room's constructor counts its own starting position — undo must not
+    // shift the repetition baseline relative to a room that never undid.
+    this.recordAndCountRepetition();
     for (const m of this.moves) {
       this.chess.play(m);
       this.recordAndCountRepetition();

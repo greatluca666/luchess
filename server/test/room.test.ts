@@ -176,6 +176,33 @@ describe('Room', () => {
     expect(room.resultReason).toBe('threefold-repetition');
   });
 
+  it('counts the rebuilt starting position after an undo the same way a fresh game does', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    // Make one throwaway move then undo it, forcing rebuildPosition() back to the starting position.
+    room.move('white', { from: 'a2', to: 'a3' });
+    room.offerUndo('white');
+    room.respondUndo('black', true);
+    // Replay the same knight-shuffle-round-trip sequence the threefold test uses.
+    // If rebuildPosition under-counts the rebuilt starting position, this would need
+    // a 3rd round to trigger instead of 2, and the test would fail below.
+    const knightShuffle: Array<{ color: 'white' | 'black'; from: string; to: string }> = [
+      { color: 'white', from: 'g1', to: 'f3' },
+      { color: 'black', from: 'g8', to: 'f6' },
+      { color: 'white', from: 'f3', to: 'g1' },
+      { color: 'black', from: 'f6', to: 'g8' },
+    ];
+    for (let round = 0; round < 2; round++) {
+      for (const step of knightShuffle) {
+        const result = room.move(step.color, { from: step.from, to: step.to });
+        expect(result.ok).toBe(true);
+      }
+    }
+    expect(room.status).toBe('finished');
+    expect(room.resultReason).toBe('threefold-repetition');
+  });
+
   it('declares a draw when the fifty-move counter reaches 100 halfmoves', () => {
     const room = new Room('r1', 0, 'white', Date.now, '8/8/8/4k3/8/4K3/8/7R w - - 99 60');
     room.connect(fakeWs());
