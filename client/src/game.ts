@@ -59,6 +59,7 @@ function applyState(state: any): void {
   ground.set({
     fen: state.fen,
     turnColor,
+    orientation: mySeat === 'black' ? 'black' : 'white',
     movable: {
       color: mySeat === 'white' || mySeat === 'black' ? mySeat : undefined,
       dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
