@@ -7,6 +7,7 @@ import { chessgroundDests } from 'chessops/compat';
 import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
+import { computeCapturedPieces, type Role } from './capturedPieces.js';
 
 const roomId = location.pathname.split('/').pop()!;
 const boardEl = document.getElementById('board')!;
@@ -20,6 +21,9 @@ const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement;
 const invitePanel = document.getElementById('invite-panel')!;
 const inviteLinkInput = document.getElementById('invite-link') as HTMLInputElement;
 const copyInviteBtn = document.getElementById('copy-invite-btn') as HTMLButtonElement;
+const variantLabelEl = document.getElementById('variant-label')!;
+const capturedTop = document.getElementById('captured-top')!;
+const capturedBottom = document.getElementById('captured-bottom')!;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
 let localChess: Chess = Chess.default();
@@ -50,6 +54,48 @@ function computeDests(pos: Chess): Dests {
   return chessgroundDests(pos) as Dests;
 }
 
+const WHITE_GLYPH: Record<Role, string> = {
+  pawn: '♙',
+  knight: '♘',
+  bishop: '♗',
+  rook: '♖',
+  queen: '♕',
+  king: '♔',
+};
+
+const BLACK_GLYPH: Record<Role, string> = {
+  pawn: '♟',
+  knight: '♞',
+  bishop: '♝',
+  rook: '♜',
+  queen: '♛',
+  king: '♚',
+};
+
+function variantLabel(state: any): string {
+  if (state.chess960) return 'Chess960';
+  if (state.variant === '3check') return '三check';
+  if (state.variant === 'kingofthehill') return 'King of the Hill';
+  return '标准';
+}
+
+function renderCaptured(state: any): void {
+  const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen);
+  const whiteIcons = capturedByWhite.map((role) => BLACK_GLYPH[role]).join('');
+  const blackIcons = capturedByBlack.map((role) => WHITE_GLYPH[role]).join('');
+
+  let whiteChecks = '';
+  let blackChecks = '';
+  if (state.checksRemaining) {
+    whiteChecks = WHITE_GLYPH.king.repeat(3 - state.checksRemaining.white);
+    blackChecks = BLACK_GLYPH.king.repeat(3 - state.checksRemaining.black);
+  }
+
+  const iAmBlack = mySeat === 'black';
+  capturedTop.textContent = iAmBlack ? whiteIcons + whiteChecks : blackIcons + blackChecks;
+  capturedBottom.textContent = iAmBlack ? blackIcons + blackChecks : whiteIcons + whiteChecks;
+}
+
 function applyState(state: any): void {
   localChess = Chess.fromSetup(parseFen(state.fen).unwrap()).unwrap();
   const turnColor = state.turn === 'white' ? 'white' : 'black';
@@ -67,6 +113,9 @@ function applyState(state: any): void {
 
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
   clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);
+
+  variantLabelEl.textContent = variantLabel(state);
+  renderCaptured(state);
 
   moveListEl.innerHTML = state.historySan
     .map((san: string, i: number) => `<li>${i % 2 === 0 ? `${i / 2 + 1}.` : ''} ${san}</li>`)
