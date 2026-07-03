@@ -213,4 +213,71 @@ describe('Room', () => {
     expect(room.result).toBe('1/2-1/2');
     expect(room.resultReason).toBe('fifty-move');
   });
+
+  it('creates a room with alternate rules and reflects them in the snapshot', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'kingofthehill');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    expect(room.getSnapshot().variant).toBe('kingofthehill');
+    expect(room.getSnapshot().chess960).toBe(false);
+  });
+
+  it('reflects a chess960 flag independently of rules', () => {
+    const chess960Fen = 'bqnrkbnr/pppppppp/8/8/8/8/PPPPPPPP/BQNRKBNR w KQkq - 0 1';
+    const room = new Room('r1', 0, 'white', Date.now, chess960Fen, 'chess', true);
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    const snapshot = room.getSnapshot();
+    expect(snapshot.variant).toBe('chess');
+    expect(snapshot.chess960).toBe(true);
+    expect(snapshot.fen.startsWith('bqnrkbnr')).toBe(true);
+  });
+
+  it('exposes remaining checks for a 3check game and decrements after a real check', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, '3check');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    expect(room.getSnapshot().checksRemaining).toEqual({ white: 3, black: 3 });
+
+    expect(room.move('white', { from: 'e2', to: 'e4' }).ok).toBe(true);
+    expect(room.move('black', { from: 'e7', to: 'e5' }).ok).toBe(true);
+    expect(room.move('white', { from: 'd1', to: 'h5' }).ok).toBe(true);
+    expect(room.move('black', { from: 'g7', to: 'g6' }).ok).toBe(true);
+    expect(room.move('white', { from: 'h5', to: 'e5' }).ok).toBe(true); // captures the e5 pawn, checks black's king
+
+    // chessops' remainingChecks is indexed by the color who *delivers* the
+    // check (it counts down from 3 to 0 for the side racking up checks, and
+    // that side wins at 0 — see RemainingChecks(3-white, 3-black) in
+    // chessops' fen.ts and the this.remainingChecks[turn]-- in chess.ts
+    // where `turn` is the mover, not the mover's opponent). White delivered
+    // the check above, so white's counter is the one that drops.
+    const snapshot = room.getSnapshot();
+    expect(snapshot.checksRemaining).toEqual({ white: 2, black: 3 });
+    expect(room.status).toBe('playing');
+  });
+
+  it('returns null checksRemaining for non-3check games', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    expect(room.getSnapshot().checksRemaining).toBeNull();
+  });
+
+  it('ends a King of the Hill game the instant a king reaches a center square', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'kingofthehill');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+
+    expect(room.move('white', { from: 'e2', to: 'e4' }).ok).toBe(true);
+    expect(room.move('black', { from: 'a7', to: 'a6' }).ok).toBe(true);
+    expect(room.move('white', { from: 'e1', to: 'e2' }).ok).toBe(true);
+    expect(room.move('black', { from: 'a6', to: 'a5' }).ok).toBe(true);
+    expect(room.move('white', { from: 'e2', to: 'd3' }).ok).toBe(true);
+    expect(room.move('black', { from: 'a5', to: 'a4' }).ok).toBe(true);
+    expect(room.move('white', { from: 'd3', to: 'd4' }).ok).toBe(true);
+
+    expect(room.status).toBe('finished');
+    expect(room.result).toBe('1-0');
+    expect(room.resultReason).toBe('variant-end');
+  });
 });

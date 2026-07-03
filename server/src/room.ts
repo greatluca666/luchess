@@ -2,6 +2,7 @@
 import type WebSocket from 'ws';
 import { applyMove, createGame, toChessopsMove, type ChessopsMove, type MoveInput } from './chessRules.js';
 import type { Position } from 'chessops/chess';
+import type { Rules } from 'chessops/types';
 import { makeFen } from 'chessops/fen';
 import { generateToken } from './idGen.js';
 
@@ -21,8 +22,9 @@ export interface StateSnapshot {
   undoOfferBy: Color | null;
   result: string | null;
   resultReason: string | null;
-  variant: 'chess';
-  chess960: false;
+  variant: Rules;
+  chess960: boolean;
+  checksRemaining: { white: number; black: number } | null;
 }
 
 interface SeatInfo {
@@ -47,6 +49,8 @@ export class Room {
 
   private readonly now: () => number;
   private readonly colorPref: Color | 'random';
+  private readonly rules: Rules;
+  private readonly chess960: boolean;
   private chess: Position;
   private readonly initialFen: string;
   private moveHistorySan: string[] = [];
@@ -63,14 +67,18 @@ export class Room {
     timeControlMs: number,
     colorPref: Color | 'random',
     now: () => number = Date.now,
-    startFen?: string
+    startFen?: string,
+    rules: Rules = 'chess',
+    chess960: boolean = false
   ) {
     this.id = id;
     this.timeControlMs = timeControlMs;
     this.clocks = { white: timeControlMs, black: timeControlMs };
     this.colorPref = colorPref;
     this.now = now;
-    this.chess = createGame('chess', startFen);
+    this.rules = rules;
+    this.chess960 = chess960;
+    this.chess = createGame(rules, startFen);
     this.initialFen = makeFen(this.chess.toSetup());
     // The game's starting position is itself the first occurrence for
     // threefold-repetition purposes (per the FIDE rule), so it must be
@@ -220,7 +228,7 @@ export class Room {
   }
 
   private rebuildPosition(): void {
-    this.chess = createGame('chess', this.initialFen);
+    this.chess = createGame(this.rules, this.initialFen);
     this.repetitionCounts.clear();
     // The rebuilt starting position is occurrence #1, exactly like a fresh
     // room's constructor counts its own starting position — undo must not
@@ -252,6 +260,7 @@ export class Room {
       const elapsed = this.now() - this.lastMoveAt;
       clocks = { ...clocks, [turnColor]: Math.max(0, clocks[turnColor] - elapsed) };
     }
+    const remainingChecks = this.chess.remainingChecks;
     return {
       roomId: this.id,
       status: this.status,
@@ -264,8 +273,9 @@ export class Room {
       undoOfferBy: this.undoOfferBy,
       result: this.result,
       resultReason: this.resultReason,
-      variant: 'chess',
-      chess960: false,
+      variant: this.rules,
+      chess960: this.chess960,
+      checksRemaining: remainingChecks ? { white: remainingChecks.white, black: remainingChecks.black } : null,
     };
   }
 
@@ -276,6 +286,10 @@ export class Room {
       parts.push(san);
     });
     return parts.join(' ');
+  }
+
+  getInitialFen(): string {
+    return this.initialFen;
   }
 
   seatColorFor(ws: WebSocket): Seat | undefined {
