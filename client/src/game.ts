@@ -76,11 +76,15 @@ function variantLabel(state: any): string {
   if (state.chess960) return 'Chess960';
   if (state.variant === '3check') return '三check';
   if (state.variant === 'kingofthehill') return 'King of the Hill';
+  if (state.variant === 'atomic') return 'Atomic';
+  if (state.variant === 'antichess') return 'Antichess';
+  if (state.variant === 'racingkings') return 'Racing Kings';
+  if (state.variant === 'horde') return 'Horde';
   return '标准';
 }
 
 function renderCaptured(state: any): void {
-  const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen);
+  const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen, state.startFen);
   const whiteIcons = capturedByWhite.map((role) => BLACK_GLYPH[role]).join('');
   const blackIcons = capturedByBlack.map((role) => WHITE_GLYPH[role]).join('');
 
