@@ -21,6 +21,10 @@ const VARIANT_LABELS: Record<string, string> = {
   chess960: 'Chess960',
   '3check': '三check',
   kingofthehill: 'King of the Hill',
+  atomic: 'Atomic',
+  antichess: 'Antichess',
+  racingkings: 'Racing Kings',
+  horde: 'Horde',
 };
 
 async function loadList(): Promise<void> {
