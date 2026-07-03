@@ -1,5 +1,6 @@
 import { Room, type Color } from './room.js';
 import { generateRoomId } from './idGen.js';
+import type { Rules } from 'chessops/types';
 
 const CLEANUP_INTERVAL_MS = 60_000;
 const CLEANUP_AFTER_MS = 10 * 60_000;
@@ -8,10 +9,16 @@ export class RoomManager {
   private rooms = new Map<string, Room>();
   private emptySince = new Map<string, number>();
 
-  createRoom(timeControlMs: number, colorPref: Color | 'random'): Room {
+  createRoom(
+    timeControlMs: number,
+    colorPref: Color | 'random',
+    rules: Rules = 'chess',
+    startFen?: string,
+    chess960: boolean = false
+  ): Room {
     let id = generateRoomId();
     while (this.rooms.has(id)) id = generateRoomId();
-    const room = new Room(id, timeControlMs, colorPref);
+    const room = new Room(id, timeControlMs, colorPref, Date.now, startFen, rules, chess960);
     this.rooms.set(id, room);
     return room;
   }

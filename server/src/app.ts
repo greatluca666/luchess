@@ -8,6 +8,8 @@ import { RoomManager } from './roomManager.js';
 import { openDb, saveGame, listGames, getGame } from './db.js';
 import { handleMessage } from './wsHandlers.js';
 import type { Color, Room } from './room.js';
+import { generateChess960Fen } from './chess960.js';
+import type { Rules } from 'chessops/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CLIENT_DIST = path.join(__dirname, '../../client/dist');
@@ -28,11 +30,22 @@ export function createApp(options: AppOptions): http.Server {
   app.use(express.static(clientDist));
 
   app.post('/api/games', (req, res) => {
-    const { timeControlMs, colorPref } = req.body ?? {};
+    const { timeControlMs, colorPref, variant } = req.body ?? {};
     const validTime = typeof timeControlMs === 'number' && timeControlMs >= 0 ? timeControlMs : 0;
     const validColor: Color | 'random' =
       colorPref === 'white' || colorPref === 'black' ? colorPref : 'random';
-    const room = roomManager.createRoom(validTime, validColor);
+
+    let rules: Rules = 'chess';
+    let chess960 = false;
+    let startFen: string | undefined;
+    if (variant === 'chess960') {
+      chess960 = true;
+      startFen = generateChess960Fen();
+    } else if (variant === '3check' || variant === 'kingofthehill') {
+      rules = variant;
+    }
+
+    const room = roomManager.createRoom(validTime, validColor, rules, startFen, chess960);
     res.json({ roomId: room.id });
   });
 
@@ -107,6 +120,8 @@ export function createApp(options: AppOptions): http.Server {
         blackTimeMs: snapshot.clocks.black,
         timeControlMs: room.timeControlMs,
         finishedAt: room.finishedAt!,
+        variant: snapshot.chess960 ? 'chess960' : snapshot.variant,
+        startFen: room.getInitialFen(),
       });
       room.markPersisted();
     }
