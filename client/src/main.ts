@@ -2,14 +2,16 @@
 const createBtn = document.getElementById('create-btn') as HTMLButtonElement;
 const timeSelect = document.getElementById('time-control') as HTMLSelectElement;
 const colorSelect = document.getElementById('color-pref') as HTMLSelectElement;
+const variantSelect = document.getElementById('variant') as HTMLSelectElement;
 
 createBtn.addEventListener('click', async () => {
   const timeControlMs = Number(timeSelect.value);
   const colorPref = colorSelect.value;
+  const variant = variantSelect.value;
   const res = await fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ timeControlMs, colorPref }),
+    body: JSON.stringify({ timeControlMs, colorPref, variant }),
   });
   const { roomId } = await res.json();
   location.href = `/game/${roomId}`;
