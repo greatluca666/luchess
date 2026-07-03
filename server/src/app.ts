@@ -41,7 +41,14 @@ export function createApp(options: AppOptions): http.Server {
     if (variant === 'chess960') {
       chess960 = true;
       startFen = generateChess960Fen();
-    } else if (variant === '3check' || variant === 'kingofthehill') {
+    } else if (
+      variant === '3check' ||
+      variant === 'kingofthehill' ||
+      variant === 'atomic' ||
+      variant === 'antichess' ||
+      variant === 'racingkings' ||
+      variant === 'horde'
+    ) {
       rules = variant;
     }
 

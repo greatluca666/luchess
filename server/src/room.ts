@@ -25,6 +25,7 @@ export interface StateSnapshot {
   variant: Rules;
   chess960: boolean;
   checksRemaining: { white: number; black: number } | null;
+  startFen: string;
 }
 
 interface SeatInfo {
@@ -276,6 +277,7 @@ export class Room {
       variant: this.rules,
       chess960: this.chess960,
       checksRemaining: remainingChecks ? { white: remainingChecks.white, black: remainingChecks.black } : null,
+      startFen: this.initialFen,
     };
   }
 

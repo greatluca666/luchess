@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type WebSocket from 'ws';
 import { Room } from '../src/room.js';
+import { parseFen } from 'chessops/fen';
 
 function fakeWs(): WebSocket {
   return { readyState: 1, OPEN: 1, send: vi.fn(), close: vi.fn() } as unknown as WebSocket;
@@ -279,5 +280,54 @@ describe('Room', () => {
     expect(room.status).toBe('finished');
     expect(room.result).toBe('1-0');
     expect(room.resultReason).toBe('variant-end');
+  });
+
+  it('exposes startFen on every snapshot, matching the room\'s actual starting position', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    const snapshot = room.getSnapshot();
+    expect(snapshot.startFen).toBe('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  });
+
+  it('creates a Horde room with a real horde-shaped starting position (far more than 8 white pawns)', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'horde');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    const snapshot = room.getSnapshot();
+    expect(snapshot.variant).toBe('horde');
+    const board = parseFen(snapshot.fen).unwrap().board;
+    expect(board.pieces('white', 'pawn').size()).toBeGreaterThan(20);
+    expect(board.pieces('black', 'queen').size()).toBe(1);
+    expect(snapshot.startFen).toBe(snapshot.fen); // no moves played yet
+  });
+
+  it('creates a Racing Kings room with no pawns on the board for either side', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'racingkings');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    const snapshot = room.getSnapshot();
+    expect(snapshot.variant).toBe('racingkings');
+    const board = parseFen(snapshot.fen).unwrap().board;
+    expect(board.pieces('white', 'pawn').size()).toBe(0);
+    expect(board.pieces('black', 'pawn').size()).toBe(0);
+  });
+
+  it('creates Atomic and Antichess rooms with the standard starting arrangement', () => {
+    const atomicRoom = new Room('r1', 0, 'white', Date.now, undefined, 'atomic');
+    atomicRoom.connect(fakeWs());
+    atomicRoom.connect(fakeWs());
+    expect(atomicRoom.getSnapshot().variant).toBe('atomic');
+    const atomicBoard = parseFen(atomicRoom.getSnapshot().fen).unwrap().board;
+    expect(atomicBoard.pieces('white', 'pawn').size()).toBe(8);
+    expect(atomicBoard.pieces('black', 'king').size()).toBe(1);
+
+    const antichessRoom = new Room('r2', 0, 'white', Date.now, undefined, 'antichess');
+    antichessRoom.connect(fakeWs());
+    antichessRoom.connect(fakeWs());
+    expect(antichessRoom.getSnapshot().variant).toBe('antichess');
+    const antichessBoard = parseFen(antichessRoom.getSnapshot().fen).unwrap().board;
+    expect(antichessBoard.pieces('white', 'pawn').size()).toBe(8);
+    expect(antichessBoard.pieces('black', 'king').size()).toBe(1);
   });
 });
