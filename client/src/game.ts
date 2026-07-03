@@ -131,13 +131,22 @@ undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
 copyInviteBtn.addEventListener('click', async () => {
   const link = location.href;
   const original = copyInviteBtn.textContent;
+  let copied = false;
   try {
     await navigator.clipboard.writeText(link);
-    copyInviteBtn.textContent = '已复制!';
+    copied = true;
   } catch {
+    // navigator.clipboard requires a secure context (https or localhost) and
+    // is unavailable over plain http on a bare IP — fall back to the older
+    // execCommand API, which still works there.
     inviteLinkInput.select();
-    copyInviteBtn.textContent = '已选中, 按 Ctrl+C 复制';
+    try {
+      copied = document.execCommand('copy');
+    } catch {
+      copied = false;
+    }
   }
+  copyInviteBtn.textContent = copied ? '已复制!' : '已选中, 按 Ctrl+C 复制';
   setTimeout(() => {
     copyInviteBtn.textContent = original;
   }, 2000);
