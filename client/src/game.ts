@@ -3,7 +3,7 @@ import { Chessground } from 'chessground';
 import type { Key, Dests } from 'chessground/types';
 import { Chess } from 'chessops/chess';
 import { parseFen, makeFen } from 'chessops/fen';
-import { makeSquare } from 'chessops/util';
+import { chessgroundDests } from 'chessops/compat';
 import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
@@ -47,13 +47,7 @@ function sendMove(from: string, to: string): void {
 }
 
 function computeDests(pos: Chess): Dests {
-  const dests: Dests = new Map();
-  for (const [from, toSquares] of pos.allDests()) {
-    const toList: Key[] = [];
-    for (const to of toSquares) toList.push(makeSquare(to) as Key);
-    if (toList.length > 0) dests.set(makeSquare(from) as Key, toList);
-  }
-  return dests;
+  return chessgroundDests(pos) as Dests;
 }
 
 function applyState(state: any): void {
