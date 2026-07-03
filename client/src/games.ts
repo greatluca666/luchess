@@ -1,7 +1,7 @@
 // client/src/games.ts
 import { Chessground } from 'chessground';
 import { Chess } from 'chessops/chess';
-import { makeFen } from 'chessops/fen';
+import { parseFen, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { extractSanMoves } from './pgnReplay.js';
 
@@ -13,13 +13,24 @@ const nextBtn = document.getElementById('replay-next') as HTMLButtonElement;
 const ground = Chessground(boardEl, { viewOnly: true });
 
 let replayMoves: string[] = [];
+let replayStartFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 let replayIndex = 0;
+
+const VARIANT_LABELS: Record<string, string> = {
+  chess: '标准',
+  chess960: 'Chess960',
+  '3check': '三check',
+  kingofthehill: 'King of the Hill',
+};
 
 async function loadList(): Promise<void> {
   const res = await fetch('/api/games');
   const games = await res.json();
   listEl.innerHTML = games
-    .map((g: any) => `<li><a href="#" data-id="${g.id}">${g.id} — ${g.result} (${g.resultReason})</a></li>`)
+    .map(
+      (g: any) =>
+        `<li><a href="#" data-id="${g.id}">${g.id} — ${VARIANT_LABELS[g.variant] ?? g.variant} — ${g.result} (${g.resultReason})</a></li>`
+    )
     .join('');
   listEl.querySelectorAll('a').forEach((a) =>
     a.addEventListener('click', (e) => {
@@ -33,12 +44,13 @@ async function loadReplay(id: string): Promise<void> {
   const res = await fetch(`/api/games/${id}`);
   const game = await res.json();
   replayMoves = extractSanMoves(game.pgn);
+  replayStartFen = game.startFen;
   replayIndex = 0;
   render();
 }
 
 function positionAt(index: number): Chess {
-  const pos = Chess.default();
+  const pos = Chess.fromSetup(parseFen(replayStartFen).unwrap()).unwrap();
   for (let i = 0; i < index; i++) {
     const move = parseSan(pos, replayMoves[i]);
     if (!move) break;
