@@ -1,7 +1,8 @@
 // client/src/game.ts
 import { Chessground } from 'chessground';
 import type { Key, Dests } from 'chessground/types';
-import { Chess } from 'chessops/chess';
+import type { Position } from 'chessops/chess';
+import { defaultPosition, setupPosition } from 'chessops/variant';
 import { parseFen, makeFen } from 'chessops/fen';
 import { chessgroundDests } from 'chessops/compat';
 import { WsClient } from './wsClient.js';
@@ -26,7 +27,7 @@ const capturedTop = document.getElementById('captured-top')!;
 const capturedBottom = document.getElementById('captured-bottom')!;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
-let localChess: Chess = Chess.default();
+let localChess: Position = defaultPosition('chess');
 
 const ground = Chessground(boardEl, {
   movable: { free: false, color: undefined },
@@ -50,7 +51,7 @@ function sendMove(from: string, to: string): void {
   ws.send({ type: 'move', from, to, promotion: 'q' });
 }
 
-function computeDests(pos: Chess): Dests {
+function computeDests(pos: Position): Dests {
   return chessgroundDests(pos) as Dests;
 }
 
@@ -101,7 +102,7 @@ function renderCaptured(state: any): void {
 }
 
 function applyState(state: any): void {
-  localChess = Chess.fromSetup(parseFen(state.fen).unwrap()).unwrap();
+  localChess = setupPosition(state.variant, parseFen(state.fen).unwrap()).unwrap();
   const turnColor = state.turn === 'white' ? 'white' : 'black';
 
   ground.set({
