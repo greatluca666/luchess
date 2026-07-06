@@ -9,6 +9,7 @@ import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
+import { buildMoveRows } from './moveList.js';
 
 const roomId = location.pathname.split('/').pop()!;
 const boardEl = document.getElementById('board')!;
@@ -122,8 +123,8 @@ function applyState(state: any): void {
   variantLabelEl.textContent = variantLabel(state);
   renderCaptured(state);
 
-  moveListEl.innerHTML = state.historySan
-    .map((san: string, i: number) => `<li>${i % 2 === 0 ? `${i / 2 + 1}.` : ''} ${san}</li>`)
+  moveListEl.innerHTML = buildMoveRows(state.historySan)
+    .map((row) => `<li><span class="move-num">${row.num}.</span><span>${row.white}</span><span>${row.black}</span></li>`)
     .join('');
 
   renderInvitePanel(state);
