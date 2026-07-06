@@ -1,12 +1,13 @@
 :root {
-  --bg: #1a1a1a;
-  --card: #242424;
-  --border: #333333;
-  --text: #e8e8e8;
-  --text-muted: #9a9a9a;
-  --accent: #629924;
-  --accent-hover: #7ab52e;
-  --radius: 10px;
+  --bg: #14140f;
+  --card: #1e1d18;
+  --border: #38352c;
+  --text: #e9e8e6;
+  --text-muted: #9b9a95;
+  --accent: #7fae00;
+  --accent-hover: #96c412;
+  --danger: #cc3333;
+  --radius: 8px;
 }
 
 * {
@@ -35,6 +36,7 @@ h1 {
   font-weight: 600;
   color: var(--text);
   margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
 }
 
 .card {
@@ -71,10 +73,21 @@ input[type="text"] {
   font-size: 1rem;
 }
 
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='%239b9a95' d='M4 6l4 4 4-4z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2.25rem;
+}
+
 select:focus,
 input[type="text"]:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(127, 174, 0, 0.2);
 }
 
 button {
@@ -85,16 +98,18 @@ button {
   padding: 0.5rem 1rem;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
 }
 
 button:hover:not(:disabled) {
   border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none;
 }
 
 #create-btn,
@@ -105,18 +120,33 @@ button:disabled {
   border-color: var(--accent);
   color: #0d1a05;
   font-weight: 600;
+  padding: 0.65rem 1rem;
 }
 
-#create-btn:hover,
-#copy-invite-btn:hover,
-#accept-draw:hover,
-#accept-undo:hover {
+#create-btn:hover:not(:disabled),
+#copy-invite-btn:hover:not(:disabled),
+#accept-draw:hover:not(:disabled),
+#accept-undo:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
 
+#resign-btn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+#resign-btn:hover:not(:disabled) {
+  background: rgba(204, 51, 51, 0.12);
+  border-color: var(--danger);
+}
+
 a {
   color: var(--accent);
+}
+
+.page.page-wide {
+  max-width: 640px;
 }
 
 .game-layout {
@@ -126,9 +156,42 @@ a {
   gap: 0.75rem;
 }
 
+.board-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.history-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.list-col {
+  width: 100%;
+}
+
+.replay-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .cg-wrap {
-  width: 480px;
-  height: 480px;
+  width: min(480px, 92vw);
+  aspect-ratio: 1 / 1;
   position: relative;
   margin: 0 auto;
 }
@@ -148,7 +211,7 @@ a {
 
 .offer-banner,
 .invite-panel {
-  background: rgba(98, 153, 36, 0.15);
+  background: rgba(127, 174, 0, 0.15);
   border: 1px solid var(--accent);
   border-left: 4px solid var(--accent);
   border-radius: 6px;
@@ -180,15 +243,36 @@ a {
 }
 
 .move-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 1fr;
+  gap: 0.15rem 0.5rem;
   list-style: none;
-  padding: 0;
+  padding: 0.5rem;
   margin: 0;
   width: 100%;
+  max-height: 320px;
+  overflow-y: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.move-list li {
+  display: contents;
+}
+
+.move-list li span {
+  padding: 0.15rem 0.35rem;
+}
+
+.move-list li:nth-child(odd) span {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.move-list .move-num {
   color: var(--text-muted);
 }
 
@@ -208,11 +292,13 @@ a {
   border-radius: 6px;
   text-decoration: none;
   color: var(--text);
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 
 #games-list li a:hover {
   border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
 }
 
 .variant-label {
@@ -226,4 +312,38 @@ a {
   font-size: 1.25rem;
   letter-spacing: 0.1rem;
   text-align: center;
+}
+
+@media (min-width: 900px) {
+  .page.page-wide {
+    max-width: 900px;
+  }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: auto 320px;
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .side-col {
+    position: sticky;
+    top: 1rem;
+  }
+
+  #move-list {
+    order: -1;
+  }
+
+  .history-layout {
+    display: grid;
+    grid-template-columns: 300px auto;
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .list-col {
+    max-height: 480px;
+    overflow-y: auto;
+  }
 }
