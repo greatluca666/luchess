@@ -190,7 +190,10 @@ a {
 }
 
 .cg-wrap {
-  width: min(480px, 92vw);
+  /* 100vw ignores ancestor padding, so subtract body's (1rem*2) + .card's
+     (1.5rem*2) horizontal padding explicitly — otherwise the board
+     overflows the viewport on narrow screens instead of fitting the card. */
+  width: min(480px, calc(100vw - 5rem));
   aspect-ratio: 1 / 1;
   position: relative;
   margin: 0 auto;
