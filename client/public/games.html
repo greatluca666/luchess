@@ -9,14 +9,18 @@
   <link rel="stylesheet" href="/chessground/chessground.cburnett.css" />
 </head>
 <body>
-  <div class="page">
+  <div class="page page-wide">
     <h1>历史对局</h1>
-    <div class="card">
-      <ul id="games-list"></ul>
-      <div id="replay-board" class="cg-wrap"></div>
-      <div class="controls">
-        <button id="replay-prev">上一步</button>
-        <button id="replay-next">下一步</button>
+    <div class="card history-layout">
+      <div class="list-col">
+        <ul id="games-list"></ul>
+      </div>
+      <div class="replay-col">
+        <div id="replay-board" class="cg-wrap"></div>
+        <div class="controls">
+          <button id="replay-prev">上一步</button>
+          <button id="replay-next">下一步</button>
+        </div>
       </div>
     </div>
   </div>
