@@ -116,6 +116,11 @@ function applyState(state: any): void {
     },
     check: localChess.isCheck(),
   });
+  // Queuing a move while it's not your turn (chessground calls this a
+  // "premove") only stores it in premovable.current — the host app must
+  // explicitly ask chessground to play it once dests are updated for the
+  // new turn, or it just sits there forever.
+  ground.playPremove();
 
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
   clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);
