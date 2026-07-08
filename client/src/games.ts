@@ -1,11 +1,11 @@
 // client/src/games.ts
 import { Chessground } from 'chessground';
 import type { Position } from 'chessops/chess';
-import type { Rules } from 'chessops/types';
 import { setupPosition } from 'chessops/variant';
 import { parseFen, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { extractSanMoves } from './pgnReplay.js';
+import { rulesFor } from './variantRules.js';
 
 const listEl = document.getElementById('games-list')!;
 const boardEl = document.getElementById('replay-board')!;
@@ -18,13 +18,6 @@ let replayMoves: string[] = [];
 let replayStartFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 let replayVariant = 'chess';
 let replayIndex = 0;
-
-function rulesFor(variant: string): Rules {
-  // The persisted variant field uses 'chess960' as its own sentinel value,
-  // but chessops has no such rules — chess960 is plain 'chess' rules with a
-  // shuffled starting position.
-  return variant === 'chess960' ? 'chess' : (variant as Rules);
-}
 
 const VARIANT_LABELS: Record<string, string> = {
   chess: '标准',

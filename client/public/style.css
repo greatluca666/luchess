@@ -191,8 +191,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.1rem, 3vw, 1.7rem);
-  line-height: 1;
 }
 
 .deco-sq.light {
@@ -203,13 +201,9 @@ a {
   background: #b58863;
 }
 
-.deco-sq .piece-w {
-  color: #fdfdfd;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
-}
-
-.deco-sq .piece-b {
-  color: #1a1a1a;
+.deco-sq .piece-icon {
+  width: 78%;
+  height: 78%;
 }
 
 /* --- variant tile grid: clicking a tile sets the #variant select --- */
@@ -461,9 +455,11 @@ input[type="number"]:focus {
 
 .captured {
   min-height: 1.5rem;
-  font-size: 1.25rem;
-  letter-spacing: 0.1rem;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+  justify-content: center;
+  align-items: center;
 }
 
 @media (min-width: 700px) {

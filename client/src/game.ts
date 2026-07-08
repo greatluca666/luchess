@@ -56,23 +56,9 @@ function computeDests(pos: Position): Dests {
   return chessgroundDests(pos) as Dests;
 }
 
-const WHITE_GLYPH: Record<Role, string> = {
-  pawn: '♙',
-  knight: '♘',
-  bishop: '♗',
-  rook: '♖',
-  queen: '♕',
-  king: '♔',
-};
-
-const BLACK_GLYPH: Record<Role, string> = {
-  pawn: '♟',
-  knight: '♞',
-  bishop: '♝',
-  rook: '♜',
-  queen: '♛',
-  king: '♚',
-};
+function pieceIconHtml(color: 'white' | 'black', role: Role): string {
+  return `<span class="piece-icon ${color} ${role}"></span>`;
+}
 
 function variantLabel(state: any): string {
   if (state.chess960) return 'Chess960';
@@ -87,19 +73,21 @@ function variantLabel(state: any): string {
 
 function renderCaptured(state: any): void {
   const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen, state.startFen);
-  const whiteIcons = capturedByWhite.map((role) => BLACK_GLYPH[role]).join('');
-  const blackIcons = capturedByBlack.map((role) => WHITE_GLYPH[role]).join('');
+  // capturedByWhite lists the (black) pieces white has captured, so it's
+  // rendered with black's icons — and vice versa for capturedByBlack.
+  const whiteIcons = capturedByWhite.map((role) => pieceIconHtml('black', role)).join('');
+  const blackIcons = capturedByBlack.map((role) => pieceIconHtml('white', role)).join('');
 
   let whiteChecks = '';
   let blackChecks = '';
   if (state.checksRemaining) {
-    whiteChecks = WHITE_GLYPH.king.repeat(3 - state.checksRemaining.white);
-    blackChecks = BLACK_GLYPH.king.repeat(3 - state.checksRemaining.black);
+    whiteChecks = pieceIconHtml('white', 'king').repeat(3 - state.checksRemaining.white);
+    blackChecks = pieceIconHtml('black', 'king').repeat(3 - state.checksRemaining.black);
   }
 
   const iAmBlack = mySeat === 'black';
-  capturedTop.textContent = iAmBlack ? whiteIcons + whiteChecks : blackIcons + blackChecks;
-  capturedBottom.textContent = iAmBlack ? blackIcons + blackChecks : whiteIcons + whiteChecks;
+  capturedTop.innerHTML = iAmBlack ? whiteIcons + whiteChecks : blackIcons + blackChecks;
+  capturedBottom.innerHTML = iAmBlack ? blackIcons + blackChecks : whiteIcons + whiteChecks;
 }
 
 function applyState(state: any): void {
