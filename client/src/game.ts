@@ -4,12 +4,18 @@ import type { Key, Dests } from 'chessground/types';
 import type { Position } from 'chessops/chess';
 import { defaultPosition, setupPosition } from 'chessops/variant';
 import { parseFen, makeFen } from 'chessops/fen';
+import { parseSan } from 'chessops/san';
+import { isNormal } from 'chessops/types';
+import { makeSquare } from 'chessops/util';
 import { chessgroundDests } from 'chessops/compat';
 import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
 import { buildMoveRows } from './moveList.js';
+import { explodedSquares } from './atomicExplosion.js';
+
+const KOTH_CENTER_SQUARES: Key[] = ['d4', 'd5', 'e4', 'e5'];
 
 const roomId = location.pathname.split('/').pop()!;
 const boardEl = document.getElementById('board')!;
@@ -29,6 +35,12 @@ const capturedBottom = document.getElementById('captured-bottom')!;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
 let localChess: Position = defaultPosition('chess');
+// Tracks the position/move-count from the previous applyState() call so an
+// atomic explosion can be detected by diffing against it — null until the
+// first state arrives, so a mid-game join never retroactively "explodes"
+// the moves that already happened.
+let previousPosition: Position | null = null;
+let previousMoveCount = 0;
 
 const ground = Chessground(boardEl, {
   movable: { free: false, color: undefined },
@@ -91,6 +103,9 @@ function renderCaptured(state: any): void {
 }
 
 function applyState(state: any): void {
+  const prevPosition = previousPosition;
+  const prevMoveCount = previousMoveCount;
+
   localChess = setupPosition(state.variant, parseFen(state.fen).unwrap()).unwrap();
   const turnColor = state.turn === 'white' ? 'white' : 'black';
 
@@ -103,12 +118,36 @@ function applyState(state: any): void {
       dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
     },
     check: localChess.isCheck(),
+    drawable: {
+      // King of the Hill: highlight the four center squares so players can
+      // see at a glance where they need to march their king.
+      autoShapes:
+        state.variant === 'kingofthehill' ? KOTH_CENTER_SQUARES.map((orig) => ({ orig, brush: 'green' })) : [],
+    },
   });
   // Queuing a move while it's not your turn (chessground calls this a
   // "premove") only stores it in premovable.current — the host app must
   // explicitly ask chessground to play it once dests are updated for the
   // new turn, or it just sits there forever.
   ground.playPremove();
+
+  // Atomic: flash an explosion effect over whichever squares just lost a
+  // piece — the capturing piece and everything non-pawn in the blast
+  // radius — by diffing the position against the one before this move.
+  if (state.variant === 'atomic' && prevPosition && state.historySan.length > prevMoveCount) {
+    const lastSan = state.historySan[state.historySan.length - 1];
+    const move = parseSan(prevPosition, lastSan);
+    if (move && isNormal(move)) {
+      const keys = explodedSquares(
+        makeFen(prevPosition.toSetup()).split(' ')[0],
+        state.fen.split(' ')[0],
+        makeSquare(move.from)
+      );
+      if (keys.length > 0) ground.explode(keys as Key[]);
+    }
+  }
+  previousPosition = localChess;
+  previousMoveCount = state.historySan.length;
 
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
   clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);

@@ -29,10 +29,16 @@
             <option value="custom">自定义…</option>
           </select>
         </label>
-        <label id="custom-time-wrap" hidden>
-          自定义分钟数
-          <input type="number" id="custom-time-minutes" min="1" max="180" value="20" />
-        </label>
+        <div id="custom-time-wrap" class="custom-time-wrap" hidden>
+          <label>
+            自定义分钟数
+            <input type="number" id="custom-time-minutes" min="1" max="180" value="20" />
+          </label>
+          <label>
+            每步加秒数
+            <input type="number" id="custom-increment-seconds" min="0" max="60" value="0" />
+          </label>
+        </div>
         <label>
           执子颜色
           <select id="color-pref">

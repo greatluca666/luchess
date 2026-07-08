@@ -1,14 +1,16 @@
 // client/src/main.ts
 import { defaultPosition } from 'chessops/variant';
 import { makeFen } from 'chessops/fen';
-import { resolveTimeControlMs } from './timeControl.js';
+import { resolveTimeControlMs, resolveIncrementMs } from './timeControl.js';
 import { rulesFor } from './variantRules.js';
 import { boardGridFromFen } from './boardFromFen.js';
+import { generateChess960Fen } from './chess960.js';
 
 const createBtn = document.getElementById('create-btn') as HTMLButtonElement;
 const timeSelect = document.getElementById('time-control') as HTMLSelectElement;
 const customTimeWrap = document.getElementById('custom-time-wrap') as HTMLElement;
 const customTimeMinutes = document.getElementById('custom-time-minutes') as HTMLInputElement;
+const customIncrementSeconds = document.getElementById('custom-increment-seconds') as HTMLInputElement;
 const colorSelect = document.getElementById('color-pref') as HTMLSelectElement;
 const variantSelect = document.getElementById('variant') as HTMLSelectElement;
 const decoBoard = document.getElementById('deco-board');
@@ -19,12 +21,13 @@ timeSelect.addEventListener('change', () => {
 });
 
 // Decorative starting-position board on the hero — aria-hidden,
-// non-interactive, redrawn for whichever variant is currently selected
-// (chess960's start is randomized per game, so it just shows the standard
-// setup as a stand-in — there's no single "the" 960 position to preview).
+// non-interactive, redrawn for whichever variant is currently selected.
+// chess960 gets a fresh random shuffle each time it's picked (the real
+// per-game position is randomized server-side the same way — this preview
+// just shows what that looks like, not the actual position the game will use).
 function renderDecoBoard(variant: string): void {
   if (!decoBoard) return;
-  const fen = makeFen(defaultPosition(rulesFor(variant)).toSetup());
+  const fen = variant === 'chess960' ? generateChess960Fen() : makeFen(defaultPosition(rulesFor(variant)).toSetup());
   const grid = boardGridFromFen(fen.split(' ')[0]);
   decoBoard.innerHTML = '';
   grid.forEach((row, r) => {
@@ -60,12 +63,13 @@ renderDecoBoard(variantSelect.value);
 
 createBtn.addEventListener('click', async () => {
   const timeControlMs = resolveTimeControlMs(timeSelect.value, customTimeMinutes.value);
+  const incrementMs = resolveIncrementMs(timeSelect.value, customIncrementSeconds.value);
   const colorPref = colorSelect.value;
   const variant = variantSelect.value;
   const res = await fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ timeControlMs, colorPref, variant }),
+    body: JSON.stringify({ timeControlMs, incrementMs, colorPref, variant }),
   });
   const { roomId } = await res.json();
   location.href = `/game/${roomId}`;

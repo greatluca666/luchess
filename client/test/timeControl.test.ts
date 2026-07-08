@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTimeControlMs } from '../src/timeControl.js';
+import { resolveTimeControlMs, resolveIncrementMs } from '../src/timeControl.js';
 
 describe('resolveTimeControlMs', () => {
   it('passes preset values straight through as ms', () => {
@@ -25,5 +25,27 @@ describe('resolveTimeControlMs', () => {
 
   it('rounds fractional minutes', () => {
     expect(resolveTimeControlMs('custom', '5.6')).toBe(6 * 60_000);
+  });
+});
+
+describe('resolveIncrementMs', () => {
+  it('is always 0 for preset time controls, regardless of the increment field', () => {
+    expect(resolveIncrementMs('0', '10')).toBe(0);
+    expect(resolveIncrementMs('300000', '10')).toBe(0);
+  });
+
+  it('converts custom increment seconds to ms', () => {
+    expect(resolveIncrementMs('custom', '5')).toBe(5_000);
+    expect(resolveIncrementMs('custom', '0')).toBe(0);
+  });
+
+  it('clamps to the 0-60 second range', () => {
+    expect(resolveIncrementMs('custom', '-5')).toBe(0);
+    expect(resolveIncrementMs('custom', '999')).toBe(60_000);
+  });
+
+  it('falls back to 0 for garbage input', () => {
+    expect(resolveIncrementMs('custom', 'abc')).toBe(0);
+    expect(resolveIncrementMs('custom', '')).toBe(0);
   });
 });
