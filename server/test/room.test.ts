@@ -146,6 +146,25 @@ describe('Room', () => {
     expect(room.resultReason).toBe('timeout');
   });
 
+  it('adds the increment back to the mover\'s clock after each move', () => {
+    let now = 1_000_000;
+    const room = new Room('r1', 60_000, 'white', () => now, undefined, 'chess', false, 5_000);
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    now += 10_000; // white thinks for 10s
+    room.move('white', { from: 'e2', to: 'e4' });
+    // 60_000 - 10_000 elapsed + 5_000 increment
+    expect(room.getSnapshot().clocks.white).toBe(55_000);
+  });
+
+  it('does not add increment to an unlimited (0ms) time control', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'chess', false, 5_000);
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    room.move('white', { from: 'e2', to: 'e4' });
+    expect(room.getSnapshot().clocks.white).toBe(0);
+  });
+
   it('never times out when the time control is unlimited', () => {
     let now = 1_000_000;
     const room = new Room('r1', 0, 'white', () => now);

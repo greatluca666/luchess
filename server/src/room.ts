@@ -41,6 +41,7 @@ export interface ActionResult {
 export class Room {
   readonly id: string;
   readonly timeControlMs: number;
+  readonly incrementMs: number;
   status: RoomStatus = 'waiting';
   drawOfferBy: Color | null = null;
   undoOfferBy: Color | null = null;
@@ -70,10 +71,12 @@ export class Room {
     now: () => number = Date.now,
     startFen?: string,
     rules: Rules = 'chess',
-    chess960: boolean = false
+    chess960: boolean = false,
+    incrementMs: number = 0
   ) {
     this.id = id;
     this.timeControlMs = timeControlMs;
+    this.incrementMs = incrementMs;
     this.clocks = { white: timeControlMs, black: timeControlMs };
     this.colorPref = colorPref;
     this.now = now;
@@ -156,7 +159,7 @@ export class Room {
 
     const now = this.now();
     if (this.timeControlMs > 0 && this.lastMoveAt !== null) {
-      this.clocks[turnColor] = Math.max(0, this.clocks[turnColor] - (now - this.lastMoveAt));
+      this.clocks[turnColor] = Math.max(0, this.clocks[turnColor] - (now - this.lastMoveAt)) + this.incrementMs;
     }
     this.lastMoveAt = now;
     this.drawOfferBy = null;

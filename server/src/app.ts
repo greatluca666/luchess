@@ -30,8 +30,9 @@ export function createApp(options: AppOptions): http.Server {
   app.use(express.static(clientDist));
 
   app.post('/api/games', (req, res) => {
-    const { timeControlMs, colorPref, variant } = req.body ?? {};
+    const { timeControlMs, incrementMs, colorPref, variant } = req.body ?? {};
     const validTime = typeof timeControlMs === 'number' && timeControlMs >= 0 ? timeControlMs : 0;
+    const validIncrement = typeof incrementMs === 'number' && incrementMs >= 0 ? incrementMs : 0;
     const validColor: Color | 'random' =
       colorPref === 'white' || colorPref === 'black' ? colorPref : 'random';
 
@@ -52,7 +53,7 @@ export function createApp(options: AppOptions): http.Server {
       rules = variant;
     }
 
-    const room = roomManager.createRoom(validTime, validColor, rules, startFen, chess960);
+    const room = roomManager.createRoom(validTime, validColor, rules, startFen, chess960, validIncrement);
     res.json({ roomId: room.id });
   });
 
