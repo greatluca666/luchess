@@ -6,6 +6,7 @@ import { parseFen, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { extractSanMoves } from './pgnReplay.js';
 import { rulesFor } from './variantRules.js';
+import { VARIANT_LABELS } from './i18n.js';
 
 const listEl = document.getElementById('games-list')!;
 const boardEl = document.getElementById('replay-board')!;
@@ -18,17 +19,6 @@ let replayMoves: string[] = [];
 let replayStartFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 let replayVariant = 'chess';
 let replayIndex = 0;
-
-const VARIANT_LABELS: Record<string, string> = {
-  chess: '标准',
-  chess960: 'Chess960',
-  '3check': '三check',
-  kingofthehill: 'King of the Hill',
-  atomic: 'Atomic',
-  antichess: 'Antichess',
-  racingkings: 'Racing Kings',
-  horde: 'Horde',
-};
 
 async function loadList(): Promise<void> {
   const res = await fetch('/api/games');

@@ -1,0 +1,27 @@
+- generic [ref=f9e2]:
+  - heading "luchess" [level=1] [ref=f9e3]
+  - main [ref=f9e4]:
+    - generic [ref=f9e5]:
+      - text: 时限
+      - combobox "时限" [ref=f9e6]:
+        - option "无限时" [selected]
+        - option "5+0"
+        - option "10+0"
+        - option "15+0"
+    - generic [ref=f9e7]:
+      - text: 执子颜色
+      - combobox "执子颜色" [ref=f9e8]:
+        - option "随机"
+        - option "白方" [selected]
+        - option "黑方"
+    - generic [ref=f9e9]:
+      - text: 玩法
+      - combobox "玩法" [ref=f9e10]:
+        - option "标准" [selected]
+        - option "Chess960"
+        - option "三check"
+        - option "King of the Hill"
+    - button "创建对局" [ref=f9e11] [cursor=pointer]
+    - paragraph [ref=f9e12]:
+      - link "历史对局" [ref=f9e13] [cursor=pointer]:
+        - /url: /games

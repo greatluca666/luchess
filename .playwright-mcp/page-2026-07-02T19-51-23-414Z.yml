@@ -1,0 +1,32 @@
+- generic [ref=f2e3]:
+  - generic [ref=f2e9]: 0:00
+  - generic [ref=f2e11]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f2e13]: 0:00
+  - generic [ref=f2e14]:
+    - button "认输" [disabled] [ref=f2e15]
+    - button "求和" [disabled] [ref=f2e16]
+    - button "悔棋" [disabled] [ref=f2e17]
+  - generic [ref=f2e21]: "对局结束: 1/2-1/2 (draw-agreement)"
+  - list [ref=f2e18]:
+    - listitem [ref=f2e34]: 1. e4
+    - listitem [ref=f2e35]: e5

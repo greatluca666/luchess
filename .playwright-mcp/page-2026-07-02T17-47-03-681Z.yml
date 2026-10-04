@@ -1,0 +1,28 @@
+- generic [ref=f2e2]:
+  - heading "历史对局" [level=1] [ref=f2e3]
+  - generic [ref=f2e4]:
+    - list
+    - generic [ref=f2e6]:
+      - img
+      - img
+      - generic:
+        - generic: "1"
+        - generic: "2"
+        - generic: "3"
+        - generic: "4"
+        - generic: "5"
+        - generic: "6"
+        - generic: "7"
+        - generic: "8"
+      - generic:
+        - generic: a
+        - generic: b
+        - generic: c
+        - generic: d
+        - generic: e
+        - generic: f
+        - generic: g
+        - generic: h
+    - generic [ref=f2e8]:
+      - button "上一步" [ref=f2e9] [cursor=pointer]
+      - button "下一步" [ref=f2e10] [cursor=pointer]

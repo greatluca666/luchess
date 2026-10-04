@@ -1,0 +1,37 @@
+- generic [ref=f4e2]:
+  - heading "历史对局" [level=1] [ref=f4e3]
+  - generic [ref=f4e4]:
+    - list [ref=f4e5]:
+      - listitem [ref=f4e6]:
+        - link "DVZwxrpT — 0-1 (resignation)" [ref=f4e7] [cursor=pointer]:
+          - /url: "#"
+      - listitem [ref=f4e8]:
+        - link "8bpy838n — 1/2-1/2 (draw-agreement)" [ref=f4e9] [cursor=pointer]:
+          - /url: "#"
+      - listitem [ref=f4e10]:
+        - link "oldformat1 — 1-0 (resignation)" [ref=f4e11] [cursor=pointer]:
+          - /url: "#"
+    - generic [ref=f4e13]:
+      - img
+      - img
+      - generic:
+        - generic: "1"
+        - generic: "2"
+        - generic: "3"
+        - generic: "4"
+        - generic: "5"
+        - generic: "6"
+        - generic: "7"
+        - generic: "8"
+      - generic:
+        - generic: a
+        - generic: b
+        - generic: c
+        - generic: d
+        - generic: e
+        - generic: f
+        - generic: g
+        - generic: h
+    - generic [ref=f4e15]:
+      - button "上一步" [ref=f4e16] [cursor=pointer]
+      - button "下一步" [ref=f4e17] [cursor=pointer]

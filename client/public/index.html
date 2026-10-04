@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>luchess</title>
@@ -10,7 +10,7 @@
   <div class="page page-wide">
     <header class="home-header">
       <h1>luchess</h1>
-      <p class="tagline">和朋友一起下棋 — 无广告、无需注册，开一个链接就能开始</p>
+      <p class="tagline">Play chess with friends — no ads, no sign-up, just share a link and start</p>
     </header>
 
     <div class="hero">
@@ -20,39 +20,39 @@
 
       <main class="card create-form">
         <label>
-          时限
+          Time control
           <select id="time-control">
-            <option value="0">无限时</option>
+            <option value="0">Unlimited</option>
             <option value="300000">5+0</option>
             <option value="600000">10+0</option>
             <option value="900000">15+0</option>
-            <option value="custom">自定义…</option>
+            <option value="custom">Custom…</option>
           </select>
         </label>
         <div id="custom-time-wrap" class="custom-time-wrap" hidden>
           <label>
-            自定义分钟数
+            Custom minutes
             <input type="number" id="custom-time-minutes" min="1" max="180" value="20" />
           </label>
           <label>
-            每步加秒数
+            Increment per move
             <input type="number" id="custom-increment-seconds" min="0" max="60" value="0" />
           </label>
         </div>
         <label>
-          执子颜色
+          Playing side
           <select id="color-pref">
-            <option value="random">随机</option>
-            <option value="white">白方</option>
-            <option value="black">黑方</option>
+            <option value="random">Random</option>
+            <option value="white">White</option>
+            <option value="black">Black</option>
           </select>
         </label>
         <label>
-          玩法
+          Variant
           <select id="variant">
-            <option value="chess">标准</option>
+            <option value="chess">Standard</option>
             <option value="chess960">Chess960</option>
-            <option value="3check">三check</option>
+            <option value="3check">Three-check</option>
             <option value="kingofthehill">King of the Hill</option>
             <option value="atomic">Atomic</option>
             <option value="antichess">Antichess</option>
@@ -60,43 +60,43 @@
             <option value="horde">Horde</option>
           </select>
         </label>
-        <button id="create-btn">创建对局</button>
-        <p><a href="/games">历史对局</a></p>
+        <button id="create-btn">Create game</button>
+        <p><a href="/games">Game history</a></p>
       </main>
     </div>
 
     <div class="variant-grid" id="variant-tiles">
       <button type="button" class="variant-tile" data-value="chess" aria-pressed="true">
-        <span class="tile-head"><span class="tag">STD</span><span class="name">标准</span></span>
-        <span class="desc">经典国际象棋规则，不用多说</span>
+        <span class="tile-head"><span class="tag">STD</span><span class="name">Standard</span></span>
+        <span class="desc">Classic chess rules — no extra setup needed</span>
       </button>
       <button type="button" class="variant-tile" data-value="chess960">
-        <span class="tile-head"><span class="tag">960</span><span class="name">随机开局</span></span>
-        <span class="desc">Chess960，后排棋子随机打乱，每局开局都不同</span>
+        <span class="tile-head"><span class="tag">960</span><span class="name">Random start</span></span>
+        <span class="desc">Chess960, with the back rank randomized each game</span>
       </button>
       <button type="button" class="variant-tile" data-value="3check">
-        <span class="tile-head"><span class="tag">+3</span><span class="name">三次将军</span></span>
-        <span class="desc">将军对方国王满3次即获胜</span>
+        <span class="tile-head"><span class="tag">+3</span><span class="name">Three checks</span></span>
+        <span class="desc">Check the king three times to win</span>
       </button>
       <button type="button" class="variant-tile" data-value="kingofthehill">
-        <span class="tile-head"><span class="tag">KH</span><span class="name">占领中心</span></span>
-        <span class="desc">King of the Hill，把王走进中心4格之一即获胜</span>
+        <span class="tile-head"><span class="tag">KH</span><span class="name">King of the Hill</span></span>
+        <span class="desc">Move your king into one of the central four squares to win</span>
       </button>
       <button type="button" class="variant-tile" data-value="atomic">
-        <span class="tile-head"><span class="tag">ATM</span><span class="name">原子棋</span></span>
-        <span class="desc">Atomic，吃子会爆炸，波及周围棋子一起消失</span>
+        <span class="tile-head"><span class="tag">ATM</span><span class="name">Atomic</span></span>
+        <span class="desc">Captured pieces explode and take nearby units with them</span>
       </button>
       <button type="button" class="variant-tile" data-value="antichess">
-        <span class="tile-head"><span class="tag">ANTI</span><span class="name">反棋</span></span>
-        <span class="desc">Antichess，强制吃子，先送光自己棋子的一方获胜</span>
+        <span class="tile-head"><span class="tag">ANTI</span><span class="name">Antichess</span></span>
+        <span class="desc">Capture is mandatory — the first side to lose all pieces wins</span>
       </button>
       <button type="button" class="variant-tile" data-value="racingkings">
-        <span class="tile-head"><span class="tag">RACE</span><span class="name">国王赛跑</span></span>
-        <span class="desc">Racing Kings，禁止将军，谁的王先冲到第8行谁赢</span>
+        <span class="tile-head"><span class="tag">RACE</span><span class="name">Racing Kings</span></span>
+        <span class="desc">No checks allowed — the first king to reach the 8th rank wins</span>
       </button>
       <button type="button" class="variant-tile" data-value="horde">
-        <span class="tile-head"><span class="tag">HORDE</span><span class="name">兽群</span></span>
-        <span class="desc">Horde，白方36个兵对抗黑方标准兵力</span>
+        <span class="tile-head"><span class="tag">HORDE</span><span class="name">Horde</span></span>
+        <span class="desc">White has 36 pawns against black's standard army</span>
       </button>
     </div>
   </div>

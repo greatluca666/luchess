@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>luchess - 对局</title>
+  <title>luchess - Game</title>
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/chessground/chessground.base.css" />
   <link rel="stylesheet" href="/chessground/chessground.brown.css" />
@@ -14,10 +14,10 @@
     <div class="game-layout card">
       <div class="board-col">
         <div id="invite-panel" class="invite-panel" hidden>
-          <p>等待对手加入... 分享链接给你朋友:</p>
+          <p>Waiting for opponent... Share this link with a friend:</p>
           <div class="invite-row">
             <input id="invite-link" type="text" readonly />
-            <button id="copy-invite-btn">复制邀请链接</button>
+            <button id="copy-invite-btn">Copy invite link</button>
           </div>
         </div>
         <div id="variant-label" class="variant-label"></div>
@@ -29,9 +29,9 @@
       </div>
       <div class="side-col">
         <div class="controls">
-          <button id="resign-btn">认输</button>
-          <button id="draw-btn">求和</button>
-          <button id="undo-btn">悔棋</button>
+          <button id="resign-btn">Resign</button>
+          <button id="draw-btn">Draw</button>
+          <button id="undo-btn">Undo</button>
         </div>
         <div id="offer-banner" class="offer-banner" hidden></div>
         <ol id="move-list" class="move-list"></ol>

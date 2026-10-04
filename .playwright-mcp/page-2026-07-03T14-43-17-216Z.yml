@@ -1,0 +1,40 @@
+- generic [ref=f13e2]:
+  - heading "历史对局" [level=1] [ref=f13e3]
+  - generic [ref=f13e4]:
+    - list [ref=f13e5]:
+      - listitem [ref=f13e6]:
+        - link "SBWGeTnT — King of the Hill — 1-0 (variant-end)" [ref=f13e7] [cursor=pointer]:
+          - /url: "#"
+      - listitem [ref=f13e8]:
+        - link "2NstxeVf — 三check — 1-0 (resignation)" [ref=f13e9] [cursor=pointer]:
+          - /url: "#"
+      - listitem [ref=f13e10]:
+        - link "zvnB9MwW — Chess960 — 1-0 (resignation)" [ref=f13e11] [cursor=pointer]:
+          - /url: "#"
+      - listitem [ref=f13e12]:
+        - link "SG5Fetav — 标准 — 1-0 (resignation)" [ref=f13e13] [cursor=pointer]:
+          - /url: "#"
+    - generic [ref=f13e15]:
+      - img
+      - img
+      - generic:
+        - generic: "1"
+        - generic: "2"
+        - generic: "3"
+        - generic: "4"
+        - generic: "5"
+        - generic: "6"
+        - generic: "7"
+        - generic: "8"
+      - generic:
+        - generic: a
+        - generic: b
+        - generic: c
+        - generic: d
+        - generic: e
+        - generic: f
+        - generic: g
+        - generic: h
+    - generic [ref=f13e17]:
+      - button "上一步" [ref=f13e18] [cursor=pointer]
+      - button "下一步" [ref=f13e19] [cursor=pointer]

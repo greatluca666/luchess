@@ -1,0 +1,40 @@
+- generic [ref=f15e3]:
+  - generic [ref=f15e9]: Atomic
+  - generic [ref=f15e26]: ♙♘
+  - generic [ref=f15e10]: 0:00
+  - generic [ref=f15e12]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f15e14]: 0:00
+  - generic [ref=f15e27]: ♟♞♛
+  - generic [ref=f15e15]:
+    - button "认输" [disabled] [ref=f15e16]
+    - button "求和" [disabled] [ref=f15e17]
+    - button "悔棋" [disabled] [ref=f15e18]
+  - generic [ref=f15e69]: "对局结束: 0-1 (resignation)"
+  - list [ref=f15e19]:
+    - listitem [ref=f15e70]: 1. e4
+    - listitem [ref=f15e71]: d5
+    - listitem [ref=f15e72]: 2. exd5
+    - listitem [ref=f15e73]: Qd5
+    - listitem [ref=f15e74]: 3. Nc3
+    - listitem [ref=f15e75]: Nc6
+    - listitem [ref=f15e76]: 4. Nxd5

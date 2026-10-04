@@ -1,0 +1,34 @@
+- generic [ref=f9e3]:
+  - generic [ref=f9e4]:
+    - paragraph [ref=f9e5]: "等待对手加入... 分享链接给你朋友:"
+    - generic [ref=f9e6]:
+      - textbox [ref=f9e7]: http://localhost:3200/game/9kqTzP8Y
+      - button "已复制!" [active] [ref=f9e20] [cursor=pointer]
+  - generic [ref=f9e9]: 0:00
+  - generic [ref=f9e11]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f9e13]: 0:00
+  - generic [ref=f9e14]:
+    - button "认输" [disabled] [ref=f9e15]
+    - button "求和" [disabled] [ref=f9e16]
+    - button "悔棋" [disabled] [ref=f9e17]
+  - list

@@ -1,0 +1,30 @@
+- generic [ref=f4e3]:
+  - generic [ref=f4e4]: Antichess
+  - generic [ref=f4e5]: 0:00
+  - generic [ref=f4e7]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f4e9]: 0:00
+  - generic [ref=f4e10]:
+    - button "认输" [ref=f4e11] [cursor=pointer]
+    - button "求和" [ref=f4e12] [cursor=pointer]
+    - button "悔棋" [disabled] [ref=f4e13]
+  - list

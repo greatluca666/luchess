@@ -1,0 +1,20 @@
+- generic [ref=f3e2]:
+  - heading "luchess" [level=1] [ref=f3e3]
+  - main [ref=f3e4]:
+    - generic [ref=f3e5]:
+      - text: 时限
+      - combobox "时限" [ref=f3e6]:
+        - option "无限时" [selected]
+        - option "5+0"
+        - option "10+0"
+        - option "15+0"
+    - generic [ref=f3e7]:
+      - text: 执子颜色
+      - combobox "执子颜色" [ref=f3e8]:
+        - option "随机" [selected]
+        - option "白方"
+        - option "黑方"
+    - button "创建对局" [ref=f3e9] [cursor=pointer]
+    - paragraph [ref=f3e10]:
+      - link "历史对局" [ref=f3e11] [cursor=pointer]:
+        - /url: /games

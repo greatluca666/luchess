@@ -1,0 +1,35 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - paragraph [ref=e5]: "等待对手加入... 分享链接给你朋友:"
+    - generic [ref=e6]:
+      - textbox [ref=e7]: http://localhost:3900/game/mJ5JBRAy
+      - button "复制邀请链接" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]: Atomic
+  - generic [ref=e10]: 0:00
+  - generic [ref=e12]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=e14]: 0:00
+  - generic [ref=e15]:
+    - button "认输" [disabled] [ref=e16]
+    - button "求和" [disabled] [ref=e17]
+    - button "悔棋" [disabled] [ref=e18]
+  - list

@@ -1,0 +1,31 @@
+- generic [ref=e2]:
+  - heading "历史对局" [level=1] [ref=e3]
+  - generic [ref=e4]:
+    - list [ref=e5]:
+      - listitem [ref=e6]:
+        - link "oldformat1 — 1-0 (resignation)" [ref=e7] [cursor=pointer]:
+          - /url: "#"
+    - generic [ref=e9]:
+      - img
+      - img
+      - generic:
+        - generic: "1"
+        - generic: "2"
+        - generic: "3"
+        - generic: "4"
+        - generic: "5"
+        - generic: "6"
+        - generic: "7"
+        - generic: "8"
+      - generic:
+        - generic: a
+        - generic: b
+        - generic: c
+        - generic: d
+        - generic: e
+        - generic: f
+        - generic: g
+        - generic: h
+    - generic [ref=e11]:
+      - button "上一步" [active] [ref=e12] [cursor=pointer]
+      - button "下一步" [ref=e13] [cursor=pointer]

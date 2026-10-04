@@ -1,0 +1,31 @@
+- generic [ref=f3e3]:
+  - generic [ref=f3e4]: Chess960
+  - generic [ref=f3e5]: 0:00
+  - generic [ref=f3e7]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f3e9]: 0:00
+  - generic [ref=f3e10]:
+    - button "认输" [disabled] [ref=f3e11]
+    - button "求和" [disabled] [ref=f3e12]
+    - button "悔棋" [disabled] [ref=f3e13]
+  - generic [ref=f3e14]: "对局结束: 1-0 (resignation)"
+  - list

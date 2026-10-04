@@ -1,0 +1,29 @@
+- generic [ref=f5e2]:
+  - generic [ref=f5e3]: 0:00
+  - generic [ref=f5e5]:
+    - img
+    - img
+    - generic:
+      - generic: "1"
+      - generic: "2"
+      - generic: "3"
+      - generic: "4"
+      - generic: "5"
+      - generic: "6"
+      - generic: "7"
+      - generic: "8"
+    - generic:
+      - generic: a
+      - generic: b
+      - generic: c
+      - generic: d
+      - generic: e
+      - generic: f
+      - generic: g
+      - generic: h
+  - generic [ref=f5e7]: 0:00
+  - generic [ref=f5e8]:
+    - button "认输" [disabled] [ref=f5e9]
+    - button "求和" [disabled] [ref=f5e10]
+    - button "悔棋" [disabled] [ref=f5e11]
+  - list

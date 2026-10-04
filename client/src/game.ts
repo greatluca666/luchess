@@ -14,6 +14,7 @@ import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
 import { buildMoveRows } from './moveList.js';
 import { explodedSquares } from './atomicExplosion.js';
+import { GAME_TEXT, VARIANT_LABELS } from './i18n.js';
 
 const KOTH_CENTER_SQUARES: Key[] = ['d4', 'd5', 'e4', 'e5'];
 
@@ -73,14 +74,9 @@ function pieceIconHtml(color: 'white' | 'black', role: Role): string {
 }
 
 function variantLabel(state: any): string {
-  if (state.chess960) return 'Chess960';
-  if (state.variant === '3check') return '三check';
-  if (state.variant === 'kingofthehill') return 'King of the Hill';
-  if (state.variant === 'atomic') return 'Atomic';
-  if (state.variant === 'antichess') return 'Antichess';
-  if (state.variant === 'racingkings') return 'Racing Kings';
-  if (state.variant === 'horde') return 'Horde';
-  return '标准';
+  if (state.chess960) return VARIANT_LABELS.chess960;
+  if (state.variant && VARIANT_LABELS[state.variant]) return VARIANT_LABELS[state.variant];
+  return VARIANT_LABELS.chess;
 }
 
 function renderCaptured(state: any): void {
@@ -165,7 +161,7 @@ function applyState(state: any): void {
 
   if (state.status === 'finished') {
     offerBanner.hidden = false;
-    offerBanner.textContent = `对局结束: ${state.result} (${state.resultReason})`;
+    offerBanner.textContent = `${GAME_TEXT.gameOver}: ${state.result} (${state.resultReason})`;
   }
 }
 
@@ -182,7 +178,7 @@ function renderOfferBanner(state: any): void {
   if (state.status !== 'playing') return;
   if (state.drawOfferBy && state.drawOfferBy !== mySeat) {
     offerBanner.hidden = false;
-    offerBanner.innerHTML = `对方求和, <button id="accept-draw">同意</button> <button id="reject-draw">拒绝</button>`;
+    offerBanner.innerHTML = `${GAME_TEXT.opponentOffersDraw}, <button id="accept-draw">${GAME_TEXT.accept}</button> <button id="reject-draw">${GAME_TEXT.reject}</button>`;
     document.getElementById('accept-draw')!.addEventListener('click', () =>
       ws.send({ type: 'respondDraw', accept: true })
     );
@@ -191,7 +187,7 @@ function renderOfferBanner(state: any): void {
     );
   } else if (state.undoOfferBy && state.undoOfferBy !== mySeat) {
     offerBanner.hidden = false;
-    offerBanner.innerHTML = `对方请求悔棋, <button id="accept-undo">同意</button> <button id="reject-undo">拒绝</button>`;
+    offerBanner.innerHTML = `${GAME_TEXT.opponentRequestsUndo}, <button id="accept-undo">${GAME_TEXT.accept}</button> <button id="reject-undo">${GAME_TEXT.reject}</button>`;
     document.getElementById('accept-undo')!.addEventListener('click', () =>
       ws.send({ type: 'respondUndo', accept: true })
     );
@@ -233,7 +229,7 @@ copyInviteBtn.addEventListener('click', async () => {
       copied = false;
     }
   }
-  copyInviteBtn.textContent = copied ? '已复制!' : '已选中, 按 Ctrl+C 复制';
+  copyInviteBtn.textContent = copied ? GAME_TEXT.copied : GAME_TEXT.copiedFallback;
   setTimeout(() => {
     copyInviteBtn.textContent = original;
   }, 2000);
