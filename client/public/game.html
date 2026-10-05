@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>luchess - Game</title>
+  <title data-i18n="title.game">luchess - Game</title>
   <link rel="stylesheet" href="/style.css" />
   <link rel="stylesheet" href="/chessground/chessground.base.css" />
   <link rel="stylesheet" href="/chessground/chessground.brown.css" />
@@ -14,10 +14,10 @@
     <div class="game-layout card">
       <div class="board-col">
         <div id="invite-panel" class="invite-panel" hidden>
-          <p>Waiting for opponent... Share this link with a friend:</p>
+          <p data-i18n="game.waiting">Waiting for opponent... Share this link with a friend:</p>
           <div class="invite-row">
             <input id="invite-link" type="text" readonly />
-            <button id="copy-invite-btn">Copy invite link</button>
+            <button id="copy-invite-btn" data-i18n="game.copyInvite">Copy invite link</button>
           </div>
         </div>
         <div id="variant-label" class="variant-label"></div>
@@ -29,10 +29,11 @@
       </div>
       <div class="side-col">
         <div class="controls">
-          <button id="resign-btn">Resign</button>
-          <button id="draw-btn">Draw</button>
-          <button id="undo-btn">Undo</button>
+          <button id="resign-btn" data-i18n="game.resign">Resign</button>
+          <button id="draw-btn" data-i18n="game.draw">Draw</button>
+          <button id="undo-btn" data-i18n="game.undo">Undo</button>
         </div>
+        <div id="error-msg" class="error-msg" hidden></div>
         <div id="offer-banner" class="offer-banner" hidden></div>
         <ol id="move-list" class="move-list"></ol>
       </div>

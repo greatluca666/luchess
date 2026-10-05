@@ -14,7 +14,8 @@ import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
 import { buildMoveRows } from './moveList.js';
 import { explodedSquares } from './atomicExplosion.js';
-import { GAME_TEXT, VARIANT_LABELS } from './i18n.js';
+import { t, variantLabel, resultText, errorText } from './i18n.js';
+import { initPageI18n } from './pageI18n.js';
 
 const KOTH_CENTER_SQUARES: Key[] = ['d4', 'd5', 'e4', 'e5'];
 
@@ -33,6 +34,7 @@ const copyInviteBtn = document.getElementById('copy-invite-btn') as HTMLButtonEl
 const variantLabelEl = document.getElementById('variant-label')!;
 const capturedTop = document.getElementById('captured-top')!;
 const capturedBottom = document.getElementById('captured-bottom')!;
+const errorMsgEl = document.getElementById('error-msg')!;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
 let localChess: Position = defaultPosition('chess');
@@ -42,6 +44,10 @@ let localChess: Position = defaultPosition('chess');
 // the moves that already happened.
 let previousPosition: Position | null = null;
 let previousMoveCount = 0;
+// Most recent server state, kept so a language switch can redraw all the
+// JS-built text without waiting for the next broadcast.
+let lastState: any = null;
+let errorTimer: ReturnType<typeof setTimeout> | undefined;
 
 const ground = Chessground(boardEl, {
   movable: { free: false, color: undefined },
@@ -56,10 +62,19 @@ const ws = new WsClient({
     } else if (msg.type === 'state') {
       applyState(msg);
     } else if (msg.type === 'error') {
-      console.warn('server error:', msg.message);
+      showError(msg.message);
     }
   },
 });
+
+function showError(message: string): void {
+  errorMsgEl.textContent = errorText(message);
+  errorMsgEl.hidden = false;
+  clearTimeout(errorTimer);
+  errorTimer = setTimeout(() => {
+    errorMsgEl.hidden = true;
+  }, 3000);
+}
 
 function sendMove(from: string, to: string): void {
   ws.send({ type: 'move', from, to, promotion: 'q' });
@@ -73,10 +88,10 @@ function pieceIconHtml(color: 'white' | 'black', role: Role): string {
   return `<span class="piece-icon ${color} ${role}"></span>`;
 }
 
-function variantLabel(state: any): string {
-  if (state.chess960) return VARIANT_LABELS.chess960;
-  if (state.variant && VARIANT_LABELS[state.variant]) return VARIANT_LABELS[state.variant];
-  return VARIANT_LABELS.chess;
+// Snapshot variant id as the history page and i18n keys know it: chess960
+// is a flag on top of plain 'chess' rules rather than a rules value.
+function variantId(state: any): string {
+  return state.chess960 ? 'chess960' : state.variant;
 }
 
 function renderCaptured(state: any): void {
@@ -99,6 +114,7 @@ function renderCaptured(state: any): void {
 }
 
 function applyState(state: any): void {
+  lastState = state;
   const prevPosition = previousPosition;
   const prevMoveCount = previousMoveCount;
 
@@ -148,7 +164,7 @@ function applyState(state: any): void {
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
   clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);
 
-  variantLabelEl.textContent = variantLabel(state);
+  variantLabelEl.textContent = variantLabel(variantId(state));
   renderCaptured(state);
 
   moveListEl.innerHTML = buildMoveRows(state.historySan)
@@ -161,7 +177,7 @@ function applyState(state: any): void {
 
   if (state.status === 'finished') {
     offerBanner.hidden = false;
-    offerBanner.textContent = `${GAME_TEXT.gameOver}: ${state.result} (${state.resultReason})`;
+    offerBanner.textContent = `${t('game.gameOver')}: ${resultText(state.result, state.resultReason)}`;
   }
 }
 
@@ -178,7 +194,7 @@ function renderOfferBanner(state: any): void {
   if (state.status !== 'playing') return;
   if (state.drawOfferBy && state.drawOfferBy !== mySeat) {
     offerBanner.hidden = false;
-    offerBanner.innerHTML = `${GAME_TEXT.opponentOffersDraw}, <button id="accept-draw">${GAME_TEXT.accept}</button> <button id="reject-draw">${GAME_TEXT.reject}</button>`;
+    offerBanner.innerHTML = `${t('game.opponentOffersDraw')}, <button id="accept-draw">${t('game.accept')}</button> <button id="reject-draw">${t('game.reject')}</button>`;
     document.getElementById('accept-draw')!.addEventListener('click', () =>
       ws.send({ type: 'respondDraw', accept: true })
     );
@@ -187,7 +203,7 @@ function renderOfferBanner(state: any): void {
     );
   } else if (state.undoOfferBy && state.undoOfferBy !== mySeat) {
     offerBanner.hidden = false;
-    offerBanner.innerHTML = `${GAME_TEXT.opponentRequestsUndo}, <button id="accept-undo">${GAME_TEXT.accept}</button> <button id="reject-undo">${GAME_TEXT.reject}</button>`;
+    offerBanner.innerHTML = `${t('game.opponentRequestsUndo')}, <button id="accept-undo">${t('game.accept')}</button> <button id="reject-undo">${t('game.reject')}</button>`;
     document.getElementById('accept-undo')!.addEventListener('click', () =>
       ws.send({ type: 'respondUndo', accept: true })
     );
@@ -213,7 +229,6 @@ undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
 
 copyInviteBtn.addEventListener('click', async () => {
   const link = location.href;
-  const original = copyInviteBtn.textContent;
   let copied = false;
   try {
     await navigator.clipboard.writeText(link);
@@ -229,8 +244,12 @@ copyInviteBtn.addEventListener('click', async () => {
       copied = false;
     }
   }
-  copyInviteBtn.textContent = copied ? GAME_TEXT.copied : GAME_TEXT.copiedFallback;
+  copyInviteBtn.textContent = copied ? t('game.copied') : t('game.copiedFallback');
   setTimeout(() => {
-    copyInviteBtn.textContent = original;
+    copyInviteBtn.textContent = t('game.copyInvite');
   }, 2000);
+});
+
+initPageI18n(() => {
+  if (lastState) applyState(lastState);
 });

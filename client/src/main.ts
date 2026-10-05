@@ -5,6 +5,7 @@ import { resolveTimeControlMs, resolveIncrementMs } from './timeControl.js';
 import { rulesFor } from './variantRules.js';
 import { boardGridFromFen } from './boardFromFen.js';
 import { generateChess960Fen } from './chess960.js';
+import { initPageI18n } from './pageI18n.js';
 
 const createBtn = document.getElementById('create-btn') as HTMLButtonElement;
 const timeSelect = document.getElementById('time-control') as HTMLSelectElement;
@@ -74,3 +75,5 @@ createBtn.addEventListener('click', async () => {
   const { roomId } = await res.json();
   location.href = `/game/${roomId}`;
 });
+
+initPageI18n();

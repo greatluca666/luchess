@@ -561,3 +561,22 @@ cg-board square.exploding2 {
     transition: none;
   }
 }
+
+/* Language switch, fixed in the top-right corner of every page. */
+.lang-toggle {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+  background: var(--card);
+}
+
+.error-msg {
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}

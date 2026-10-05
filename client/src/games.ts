@@ -6,7 +6,8 @@ import { parseFen, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
 import { extractSanMoves } from './pgnReplay.js';
 import { rulesFor } from './variantRules.js';
-import { VARIANT_LABELS } from './i18n.js';
+import { variantLabel, resultText } from './i18n.js';
+import { initPageI18n } from './pageI18n.js';
 
 const listEl = document.getElementById('games-list')!;
 const boardEl = document.getElementById('replay-board')!;
@@ -20,13 +21,19 @@ let replayStartFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 let replayVariant = 'chess';
 let replayIndex = 0;
 
+let games: any[] = [];
+
 async function loadList(): Promise<void> {
   const res = await fetch('/api/games');
-  const games = await res.json();
+  games = await res.json();
+  renderList();
+}
+
+function renderList(): void {
   listEl.innerHTML = games
     .map(
       (g: any) =>
-        `<li><a href="#" data-id="${g.id}">${g.id} — ${VARIANT_LABELS[g.variant] ?? g.variant} — ${g.result} (${g.resultReason})</a></li>`
+        `<li><a href="#" data-id="${g.id}">${g.id} — ${variantLabel(g.variant)} — ${resultText(g.result, g.resultReason)}</a></li>`
     )
     .join('');
   listEl.querySelectorAll('a').forEach((a) =>
@@ -74,4 +81,5 @@ nextBtn.addEventListener('click', () => {
   render();
 });
 
+initPageI18n(renderList);
 loadList();
