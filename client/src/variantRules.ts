@@ -1,8 +1,9 @@
 import type { Rules } from 'chessops/types';
 
-// The persisted/selected variant field uses 'chess960' as its own sentinel
-// value, but chessops has no such rules — chess960 is plain 'chess' rules
-// with a shuffled starting position.
+// chess960 and fogofwar are flags on top of plain chess rules (a shuffled
+// start / hidden information), not chessops rules of their own.
+const CHESS_RULES_VARIANTS = new Set(['chess960', 'fogofwar']);
+
 export function rulesFor(variant: string): Rules {
-  return variant === 'chess960' ? 'chess' : (variant as Rules);
+  return CHESS_RULES_VARIANTS.has(variant) ? 'chess' : (variant as Rules);
 }

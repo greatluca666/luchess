@@ -13,13 +13,14 @@ import { WsClient } from './wsClient.js';
 import { formatClock } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
-import { buildMoveRows } from './moveList.js';
+import { buildMoveRows, formatFogMove } from './moveList.js';
 import { explodedSquares } from './atomicExplosion.js';
 import { t, variantLabel, resultText, errorText } from './i18n.js';
 import { initPageI18n } from './pageI18n.js';
 import { parsePockets, dropDestKeys, DROP_ROLES, type DropRole, type PocketCounts } from './pockets.js';
 
 const KOTH_CENTER_SQUARES: Key[] = ['d4', 'd5', 'e4', 'e5'];
+const ALL_KEYS: Key[] = [...'abcdefgh'].flatMap((file) => [...'12345678'].map((rank) => `${file}${rank}` as Key));
 
 const roomId = location.pathname.split('/').pop()!;
 const boardEl = document.getElementById('board')!;
@@ -112,14 +113,21 @@ function pieceIconHtml(color: 'white' | 'black', role: Role): string {
 }
 
 // Snapshot variant id as the history page and i18n keys know it: chess960
-// is a flag on top of plain 'chess' rules rather than a rules value.
+// and fog of war are flags on top of plain 'chess' rules, not rules values.
 function variantId(state: any): string {
-  return state.chess960 ? 'chess960' : state.variant;
+  return state.fog ? 'fogofwar' : state.chess960 ? 'chess960' : state.variant;
 }
 
 function renderCaptured(state: any): void {
   if (state.variant === 'crazyhouse') {
     renderPockets(state);
+    return;
+  }
+  // Material counted from a masked board would show every hidden enemy piece
+  // as captured; reveal captures only once the game is over.
+  if (state.fog && state.status !== 'finished') {
+    capturedTop.innerHTML = '';
+    capturedBottom.innerHTML = '';
     return;
   }
   const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen, state.startFen);
@@ -151,10 +159,18 @@ function applyState(state: any): void {
     selectedDrop = null;
   }
 
-  localChess = setupPosition(state.variant, parseFen(state.fen).unwrap()).unwrap();
-  applyStandardBoard(state, turnColor);
-  flashAtomicExplosion(state, prevPosition, prevMoveCount);
-  previousPosition = localChess;
+  if (state.fog) {
+    // A masked fog position may lack the opponent's king, which chessops'
+    // setupPosition() rejects — so fog games skip chessops entirely and use
+    // the server's dests.
+    applyFogBoard(state, turnColor);
+    previousPosition = null;
+  } else {
+    localChess = setupPosition(state.variant, parseFen(state.fen).unwrap()).unwrap();
+    applyStandardBoard(state, turnColor);
+    flashAtomicExplosion(state, prevPosition, prevMoveCount);
+    previousPosition = localChess;
+  }
   previousMoveCount = state.historySan.length;
 
   clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
@@ -163,7 +179,8 @@ function applyState(state: any): void {
   variantLabelEl.textContent = variantLabel(variantId(state));
   renderCaptured(state);
 
-  moveListEl.innerHTML = buildMoveRows(state.historySan)
+  const moves: string[] = state.fog ? state.historySan.map(formatFogMove) : state.historySan;
+  moveListEl.innerHTML = buildMoveRows(moves)
     .map((row) => `<li><span class="move-num">${row.num}.</span><span>${row.white}</span><span>${row.black}</span></li>`)
     .join('');
 
@@ -201,6 +218,29 @@ function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
   // explicitly ask chessground to play it once dests are updated for the
   // new turn, or it just sits there forever.
   ground.playPremove();
+  syncDropMode();
+}
+
+function applyFogBoard(state: any, turnColor: 'white' | 'black'): void {
+  const fogged = new Map<Key, string>();
+  if (state.status !== 'finished') {
+    const visible = new Set<string>(state.visible ?? []);
+    for (const key of ALL_KEYS) if (!visible.has(key)) fogged.set(key, 'fog');
+  }
+  ground.set({
+    fen: state.fen,
+    turnColor,
+    orientation: mySeat === 'black' ? 'black' : 'white',
+    movable: {
+      color: isPlayer() ? (mySeat as 'white' | 'black') : undefined,
+      dests: mySeat === turnColor ? (new Map(Object.entries(state.dests ?? {})) as Dests) : new Map(),
+    },
+    // A premove would need dests for a position the player can't see.
+    premovable: { enabled: false },
+    check: false,
+    highlight: { custom: fogged },
+    drawable: { autoShapes: [] },
+  });
   syncDropMode();
 }
 

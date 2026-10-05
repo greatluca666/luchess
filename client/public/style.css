@@ -638,3 +638,10 @@ button.pocket-piece:hover:not(:disabled) {
 cg-board square.drop-dest {
   background: radial-gradient(rgba(20, 85, 30, 0.5) 22%, rgba(0, 0, 0, 0) 23%);
 }
+
+/* Fog of War: squares the player can't currently see. Own pieces always sit
+   on visible squares and hidden enemy pieces are never sent, so a fogged
+   square is always empty. */
+cg-board square.fog {
+  background: rgba(12, 12, 10, 0.86);
+}

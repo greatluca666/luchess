@@ -4,6 +4,7 @@ import type { Position } from 'chessops/chess';
 import { setupPosition } from 'chessops/variant';
 import { parseFen, makeFen } from 'chessops/fen';
 import { parseSan } from 'chessops/san';
+import { parseUci } from 'chessops/util';
 import { extractSanMoves } from './pgnReplay.js';
 import { rulesFor } from './variantRules.js';
 import { variantLabel, resultText } from './i18n.js';
@@ -57,7 +58,9 @@ async function loadReplay(id: string): Promise<void> {
 function positionAt(index: number): Position {
   const pos = setupPosition(rulesFor(replayVariant), parseFen(replayStartFen).unwrap()).unwrap();
   for (let i = 0; i < index; i++) {
-    const move = parseSan(pos, replayMoves[i]);
+    // Fog of War games are stored as UCI: their moves (a king stepping into
+    // attack, say) are not legal chess, so SAN can't describe them.
+    const move = replayVariant === 'fogofwar' ? parseUci(replayMoves[i]) : parseSan(pos, replayMoves[i]);
     if (!move) break;
     pos.play(move);
   }
