@@ -1132,6 +1132,7 @@ Expected: PASS.
 ```ts
 import type { Key, Dests, MouchEvent, Piece } from 'chessground/types';
 import { parsePockets, dropDestKeys, DROP_ROLES, type DropRole, type PocketCounts } from './pockets.js';
+import { setDropMode, cancelDropMode } from 'chessground/drop';
 ```
 
 2. State next to `lastState`:
@@ -1214,7 +1215,6 @@ function applyState(state: any): void {
 }
 
 function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
-  const dropPiece = selectedDrop && isPlayer() ? { color: mySeat as 'white' | 'black', role: selectedDrop } : undefined;
   ground.set({
     fen: state.fen,
     turnColor,
@@ -1226,7 +1226,6 @@ function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
     premovable: { enabled: true },
     check: localChess.isCheck(),
     highlight: { custom: dropHighlights() },
-    dropmode: dropPiece ? { active: true, piece: dropPiece } : { active: false },
     drawable: {
       // King of the Hill: highlight the four center squares so players can
       // see at a glance where they need to march their king.
@@ -1239,6 +1238,22 @@ function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
   // explicitly ask chessground to play it once dests are updated for the
   // new turn, or it just sits there forever.
   ground.playPremove();
+  syncDropMode();
+}
+
+// chessground 9.2's Config has no `dropmode` field — only the state helpers
+// in 'chessground/drop'. setDropMode() also cancels any drag in progress, so
+// it's only called when the selection actually changes, never on the
+// once-a-second clock broadcasts.
+function syncDropMode(): void {
+  const current = ground.state.dropmode;
+  if (selectedDrop && isPlayer()) {
+    if (!current.active || current.piece?.role !== selectedDrop) {
+      setDropMode(ground.state, { color: mySeat as 'white' | 'black', role: selectedDrop });
+    }
+  } else if (current.active) {
+    cancelDropMode(ground.state);
+  }
 }
 
 // Atomic: flash an explosion effect over whichever squares just lost a
@@ -2207,9 +2222,9 @@ function applyFogBoard(state: any, turnColor: 'white' | 'black'): void {
     premovable: { enabled: false },
     check: false,
     highlight: { custom: fogged },
-    dropmode: { active: false },
     drawable: { autoShapes: [] },
   });
+  syncDropMode();
 }
 ```
 

@@ -19,12 +19,15 @@ const FEN_CHAR_TO_ROLE: Record<string, Role> = {
 // order FEN itself lists ranks in — so it lines up directly with a
 // top-to-bottom, white-at-the-bottom board rendering.
 export function boardGridFromFen(fenBoardPart: string): (BoardSquare | null)[][] {
-  return fenBoardPart.split('/').map((rankStr) => {
+  // Crazyhouse FENs append the pockets in brackets ("...RNBQKBNR[Nn]") and
+  // mark promoted pieces with '~' — neither is a square on the board.
+  const board = fenBoardPart.split('[')[0];
+  return board.split('/').map((rankStr) => {
     const row: (BoardSquare | null)[] = [];
     for (const ch of rankStr) {
       if (/[1-8]/.test(ch)) {
         row.push(...Array(Number(ch)).fill(null));
-      } else {
+      } else if (FEN_CHAR_TO_ROLE[ch.toLowerCase()]) {
         row.push({ role: FEN_CHAR_TO_ROLE[ch.toLowerCase()], color: ch === ch.toLowerCase() ? 'black' : 'white' });
       }
     }

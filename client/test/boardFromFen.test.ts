@@ -28,4 +28,11 @@ describe('boardGridFromFen', () => {
     expect(grid[3][2]).toEqual({ role: 'pawn', color: 'white' });
     expect(grid[3][3]).toBeNull();
   });
+
+  it('ignores a crazyhouse pocket section and promoted-piece markers', () => {
+    const grid = boardGridFromFen('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKQ~NR[Nn]');
+    expect(grid).toHaveLength(8);
+    grid.forEach((row) => expect(row).toHaveLength(8));
+    expect(grid[7][5]).toEqual({ role: 'queen', color: 'white' });
+  });
 });

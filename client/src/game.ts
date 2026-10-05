@@ -1,6 +1,7 @@
 // client/src/game.ts
 import { Chessground } from 'chessground';
-import type { Key, Dests } from 'chessground/types';
+import { setDropMode, cancelDropMode } from 'chessground/drop';
+import type { Key, Dests, MouchEvent, Piece } from 'chessground/types';
 import type { Position } from 'chessops/chess';
 import { defaultPosition, setupPosition } from 'chessops/variant';
 import { parseFen, makeFen } from 'chessops/fen';
@@ -16,6 +17,7 @@ import { buildMoveRows } from './moveList.js';
 import { explodedSquares } from './atomicExplosion.js';
 import { t, variantLabel, resultText, errorText } from './i18n.js';
 import { initPageI18n } from './pageI18n.js';
+import { parsePockets, dropDestKeys, DROP_ROLES, type DropRole, type PocketCounts } from './pockets.js';
 
 const KOTH_CENTER_SQUARES: Key[] = ['d4', 'd5', 'e4', 'e5'];
 
@@ -48,10 +50,15 @@ let previousMoveCount = 0;
 // JS-built text without waiting for the next broadcast.
 let lastState: any = null;
 let errorTimer: ReturnType<typeof setTimeout> | undefined;
+// Crazyhouse: the pocket piece currently picked up (click-to-drop mode).
+let selectedDrop: DropRole | null = null;
 
 const ground = Chessground(boardEl, {
   movable: { free: false, color: undefined },
-  events: { move: (orig: Key, dest: Key) => sendMove(orig, dest) },
+  events: {
+    move: (orig: Key, dest: Key) => sendMove(orig, dest),
+    dropNewPiece: (piece: Piece, key: Key) => sendDrop(piece.role as DropRole, key),
+  },
 });
 
 const ws = new WsClient({
@@ -80,6 +87,22 @@ function sendMove(from: string, to: string): void {
   ws.send({ type: 'move', from, to, promotion: 'q' });
 }
 
+function sendDrop(role: DropRole, key: Key): void {
+  ws.send({ type: 'move', drop: role, to: key });
+}
+
+function isPlayer(): boolean {
+  return mySeat === 'white' || mySeat === 'black';
+}
+
+function dropHighlights(): Map<Key, string> {
+  const custom = new Map<Key, string>();
+  if (selectedDrop) {
+    for (const key of dropDestKeys(localChess, selectedDrop)) custom.set(key as Key, 'drop-dest');
+  }
+  return custom;
+}
+
 function computeDests(pos: Position): Dests {
   return chessgroundDests(pos) as Dests;
 }
@@ -95,6 +118,10 @@ function variantId(state: any): string {
 }
 
 function renderCaptured(state: any): void {
+  if (state.variant === 'crazyhouse') {
+    renderPockets(state);
+    return;
+  }
   const { capturedByWhite, capturedByBlack } = computeCapturedPieces(state.fen, state.startFen);
   // capturedByWhite lists the (black) pieces white has captured, so it's
   // rendered with black's icons — and vice versa for capturedByBlack.
@@ -117,47 +144,16 @@ function applyState(state: any): void {
   lastState = state;
   const prevPosition = previousPosition;
   const prevMoveCount = previousMoveCount;
+  const turnColor = state.turn === 'white' ? 'white' : 'black';
+  // The server re-broadcasts every second for the clocks, so only a real
+  // change (a move, or the turn passing) drops a picked-up pocket piece.
+  if (state.historySan.length !== prevMoveCount || mySeat !== turnColor || state.status !== 'playing') {
+    selectedDrop = null;
+  }
 
   localChess = setupPosition(state.variant, parseFen(state.fen).unwrap()).unwrap();
-  const turnColor = state.turn === 'white' ? 'white' : 'black';
-
-  ground.set({
-    fen: state.fen,
-    turnColor,
-    orientation: mySeat === 'black' ? 'black' : 'white',
-    movable: {
-      color: mySeat === 'white' || mySeat === 'black' ? mySeat : undefined,
-      dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
-    },
-    check: localChess.isCheck(),
-    drawable: {
-      // King of the Hill: highlight the four center squares so players can
-      // see at a glance where they need to march their king.
-      autoShapes:
-        state.variant === 'kingofthehill' ? KOTH_CENTER_SQUARES.map((orig) => ({ orig, brush: 'green' })) : [],
-    },
-  });
-  // Queuing a move while it's not your turn (chessground calls this a
-  // "premove") only stores it in premovable.current — the host app must
-  // explicitly ask chessground to play it once dests are updated for the
-  // new turn, or it just sits there forever.
-  ground.playPremove();
-
-  // Atomic: flash an explosion effect over whichever squares just lost a
-  // piece — the capturing piece and everything non-pawn in the blast
-  // radius — by diffing the position against the one before this move.
-  if (state.variant === 'atomic' && prevPosition && state.historySan.length > prevMoveCount) {
-    const lastSan = state.historySan[state.historySan.length - 1];
-    const move = parseSan(prevPosition, lastSan);
-    if (move && isNormal(move)) {
-      const keys = explodedSquares(
-        makeFen(prevPosition.toSetup()).split(' ')[0],
-        state.fen.split(' ')[0],
-        makeSquare(move.from)
-      );
-      if (keys.length > 0) ground.explode(keys as Key[]);
-    }
-  }
+  applyStandardBoard(state, turnColor);
+  flashAtomicExplosion(state, prevPosition, prevMoveCount);
   previousPosition = localChess;
   previousMoveCount = state.historySan.length;
 
@@ -180,6 +176,109 @@ function applyState(state: any): void {
     offerBanner.textContent = `${t('game.gameOver')}: ${resultText(state.result, state.resultReason)}`;
   }
 }
+
+function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
+  ground.set({
+    fen: state.fen,
+    turnColor,
+    orientation: mySeat === 'black' ? 'black' : 'white',
+    movable: {
+      color: isPlayer() ? (mySeat as 'white' | 'black') : undefined,
+      dests: mySeat === turnColor ? computeDests(localChess) : new Map(),
+    },
+    premovable: { enabled: true },
+    check: localChess.isCheck(),
+    highlight: { custom: dropHighlights() },
+    drawable: {
+      // King of the Hill: highlight the four center squares so players can
+      // see at a glance where they need to march their king.
+      autoShapes:
+        state.variant === 'kingofthehill' ? KOTH_CENTER_SQUARES.map((orig) => ({ orig, brush: 'green' })) : [],
+    },
+  });
+  // Queuing a move while it's not your turn (chessground calls this a
+  // "premove") only stores it in premovable.current — the host app must
+  // explicitly ask chessground to play it once dests are updated for the
+  // new turn, or it just sits there forever.
+  ground.playPremove();
+  syncDropMode();
+}
+
+// chessground's dropmode (tap a square to place the picked-up piece) has no
+// Config field, only these state helpers. setDropMode() also cancels any
+// drag in progress, so it's only called when the selection actually changes
+// — never on the once-a-second clock broadcasts.
+function syncDropMode(): void {
+  const current = ground.state.dropmode;
+  if (selectedDrop && isPlayer()) {
+    if (!current.active || current.piece?.role !== selectedDrop) {
+      setDropMode(ground.state, { color: mySeat as 'white' | 'black', role: selectedDrop });
+    }
+  } else if (current.active) {
+    cancelDropMode(ground.state);
+  }
+}
+
+// Atomic: flash an explosion effect over whichever squares just lost a
+// piece — the capturing piece and everything non-pawn in the blast
+// radius — by diffing the position against the one before this move.
+function flashAtomicExplosion(state: any, prevPosition: Position | null, prevMoveCount: number): void {
+  if (state.variant !== 'atomic' || !prevPosition || state.historySan.length <= prevMoveCount) return;
+  const lastSan = state.historySan[state.historySan.length - 1];
+  const move = parseSan(prevPosition, lastSan);
+  if (move && isNormal(move)) {
+    const keys = explodedSquares(
+      makeFen(prevPosition.toSetup()).split(' ')[0],
+      state.fen.split(' ')[0],
+      makeSquare(move.from)
+    );
+    if (keys.length > 0) ground.explode(keys as Key[]);
+  }
+}
+
+function renderPockets(state: any): void {
+  const pockets = parsePockets(state.fen);
+  const bottomColor = mySeat === 'black' ? 'black' : 'white';
+  const topColor = bottomColor === 'white' ? 'black' : 'white';
+  const canDrop = mySeat === bottomColor && state.status === 'playing' && state.turn === mySeat;
+  capturedTop.innerHTML = pocketHtml(topColor, pockets[topColor], false);
+  capturedBottom.innerHTML = pocketHtml(bottomColor, pockets[bottomColor], canDrop);
+}
+
+function pocketHtml(color: 'white' | 'black', counts: PocketCounts, interactive: boolean): string {
+  return DROP_ROLES.map((role) => {
+    const count = counts[role];
+    const classes = ['pocket-piece'];
+    if (count === 0) classes.push('empty');
+    if (interactive && selectedDrop === role) classes.push('selected');
+    const inner = `${pieceIconHtml(color, role)}<span class="pocket-count">${count}</span>`;
+    return interactive && count > 0
+      ? `<button type="button" class="${classes.join(' ')}" data-role="${role}">${inner}</button>`
+      : `<span class="${classes.join(' ')}">${inner}</span>`;
+  }).join('');
+}
+
+// A press both picks the piece up (so a later tap on a square drops it, via
+// chessground's dropmode) and starts a drag (so it can be dragged straight
+// onto the board). Pressing the picked-up piece again puts it back.
+function onPocketPress(e: MouseEvent | TouchEvent): void {
+  if (e instanceof MouseEvent && e.button !== 0) return;
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button.pocket-piece');
+  if (!btn || !lastState || !isPlayer()) return;
+  e.preventDefault();
+  const role = btn.dataset.role as DropRole;
+  if (selectedDrop === role) {
+    selectedDrop = null;
+    applyState(lastState);
+    return;
+  }
+  selectedDrop = role;
+  applyState(lastState);
+  ground.dragNewPiece({ color: mySeat as 'white' | 'black', role }, e as unknown as MouchEvent);
+}
+
+capturedBottom.addEventListener('mousedown', onPocketPress);
+capturedBottom.addEventListener('touchstart', onPocketPress, { passive: false });
 
 function renderInvitePanel(state: any): void {
   if (shouldShowInvitePanel(state.status)) {
