@@ -38,10 +38,13 @@ export function createApp(options: AppOptions): http.Server {
 
     let rules: Rules = 'chess';
     let chess960 = false;
+    let fog = false;
     let startFen: string | undefined;
     if (variant === 'chess960') {
       chess960 = true;
       startFen = generateChess960Fen();
+    } else if (variant === 'fogofwar') {
+      fog = true;
     } else if (
       variant === '3check' ||
       variant === 'kingofthehill' ||
@@ -54,7 +57,7 @@ export function createApp(options: AppOptions): http.Server {
       rules = variant;
     }
 
-    const room = roomManager.createRoom(validTime, validColor, rules, startFen, chess960, validIncrement);
+    const room = roomManager.createRoom(validTime, validColor, rules, startFen, chess960, validIncrement, fog);
     res.json({ roomId: room.id });
   });
 
@@ -110,10 +113,13 @@ export function createApp(options: AppOptions): http.Server {
     });
   });
 
+  // Each connection gets its own snapshot: in Fog of War, what a player may
+  // see depends on their seat, so one shared payload would leak the board.
   function broadcastState(room: Room): void {
-    const snapshot = JSON.stringify({ type: 'state', ...room.getSnapshot() });
     for (const conn of room.allConnections()) {
-      if (conn.readyState === WebSocket.OPEN) conn.send(snapshot);
+      if (conn.readyState !== WebSocket.OPEN) continue;
+      const seat = room.seatColorFor(conn) ?? 'spectator';
+      conn.send(JSON.stringify({ type: 'state', ...room.getSnapshot(seat) }));
     }
   }
 
@@ -129,7 +135,7 @@ export function createApp(options: AppOptions): http.Server {
         blackTimeMs: snapshot.clocks.black,
         timeControlMs: room.timeControlMs,
         finishedAt: room.finishedAt!,
-        variant: snapshot.chess960 ? 'chess960' : snapshot.variant,
+        variant: snapshot.fog ? 'fogofwar' : snapshot.chess960 ? 'chess960' : snapshot.variant,
         startFen: room.getInitialFen(),
       });
       room.markPersisted();

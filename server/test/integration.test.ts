@@ -65,6 +65,45 @@ describe('full game integration', () => {
     clientA.close();
     clientB.close();
   });
+
+  it('sends each fog of war player their own masked state and persists the game as fogofwar', async () => {
+    server = createApp({ dbPath: ':memory:' });
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const port = (server.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+
+    const createRes = await fetch(`${base}/api/games`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeControlMs: 0, colorPref: 'white', variant: 'fogofwar' }),
+    });
+    const { roomId } = await createRes.json();
+
+    const white = new WebSocket(`ws://localhost:${port}/ws/${roomId}`);
+    await waitForMessage(white, (m) => m.type === 'joined');
+    const black = new WebSocket(`ws://localhost:${port}/ws/${roomId}`);
+    await waitForMessage(black, (m) => m.type === 'joined');
+
+    const whiteState = waitForMessage(white, (m) => m.type === 'state' && m.historySan.length === 1);
+    const blackState = waitForMessage(black, (m) => m.type === 'state' && m.historySan.length === 1);
+    white.send(JSON.stringify({ type: 'move', from: 'e2', to: 'e4' }));
+    const [w, b] = await Promise.all([whiteState, blackState]);
+    expect(w.historySan).toEqual(['e2e4']);
+    expect(/[a-z]/.test(w.fen.split(' ')[0])).toBe(false);
+    expect(b.historySan).toEqual(['?']);
+    expect(/[A-Z]/.test(b.fen.split(' ')[0])).toBe(false);
+
+    const finished = waitForMessage(white, (m) => m.type === 'state' && m.status === 'finished');
+    black.send(JSON.stringify({ type: 'resign' }));
+    await finished;
+
+    const games = await (await fetch(`${base}/api/games`)).json();
+    expect(games[0].variant).toBe('fogofwar');
+    expect(games[0].pgn).toBe('1. e2e4');
+
+    white.close();
+    black.close();
+  });
 });
 
 function waitForMessage(ws: WebSocket, predicate: (msg: any) => boolean): Promise<any> {

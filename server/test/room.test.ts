@@ -384,4 +384,86 @@ describe('Room', () => {
     room.move('white', { from: 'e4', to: 'd5' });
     expect(room.getSnapshot().fen.split(' ')[0].endsWith('[P]')).toBe(true);
   });
+
+  function fogRoom(startFen?: string): Room {
+    const room = new Room('r1', 0, 'white', Date.now, startFen, 'chess', false, 0, true);
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    return room;
+  }
+
+  it('fog: ignores check and ends the game when a king is captured', () => {
+    const room = fogRoom();
+    const moves: Array<['white' | 'black', string, string]> = [
+      ['white', 'e2', 'e3'],
+      ['black', 'f7', 'f6'],
+      ['white', 'd1', 'h5'],
+      ['black', 'a7', 'a6'], // ignores the "check" — legal in fog of war
+      ['white', 'h5', 'e8'],
+    ];
+    for (const [color, from, to] of moves) expect(room.move(color, { from, to }).ok).toBe(true);
+    expect(room.status).toBe('finished');
+    expect(room.result).toBe('1-0');
+    expect(room.resultReason).toBe('king-captured');
+    expect(room.getSnapshot().historySan).toEqual(['e2e3', 'f7f6', 'd1h5', 'a7a6', 'h5e8']);
+  });
+
+  it('fog: rejects moves that are not even pseudo-legal', () => {
+    expect(fogRoom().move('white', { from: 'e2', to: 'e5' }).ok).toBe(false);
+  });
+
+  it('fog: shows each player only what they can see and hides the opponent\'s moves', () => {
+    const room = fogRoom();
+    room.move('white', { from: 'e2', to: 'e4' });
+    const white = room.getSnapshot('white');
+    expect(white.fen.split(' ')[0]).toBe('8/8/8/8/4P3/8/PPPP1PPP/RNBQKBNR');
+    expect(white.historySan).toEqual(['e2e4']);
+    expect(white.dests).toEqual({});
+    const black = room.getSnapshot('black');
+    expect(black.fen.split(' ')[0]).toBe('rnbqkbnr/pppppppp/8/8/8/8/8/8');
+    expect(black.historySan).toEqual(['?']);
+    expect(black.dests!.e7).toEqual(expect.arrayContaining(['e6', 'e5']));
+    expect(black.visible).toContain('e5');
+    expect(black.visible).not.toContain('e4');
+  });
+
+  it('fog: spectators see nothing until the game ends, then everyone sees everything', () => {
+    const room = fogRoom();
+    room.move('white', { from: 'e2', to: 'e4' });
+    const spectator = room.getSnapshot('spectator');
+    expect(spectator.fen.split(' ')[0]).toBe('8/8/8/8/8/8/8/8');
+    expect(spectator.historySan).toEqual(['?']);
+    expect(spectator.visible).toEqual([]);
+    room.resign('black');
+    const after = room.getSnapshot('spectator');
+    expect(after.fen.split(' ')[0]).toBe('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR');
+    expect(after.historySan).toEqual(['e2e4']);
+    expect(after.visible).toBeNull();
+  });
+
+  it('fog: accepts castling dragged as a two-square king move and records it king-to-rook', () => {
+    const room = fogRoom('r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1');
+    expect(room.move('white', { from: 'e1', to: 'g1' }).ok).toBe(true);
+    expect(room.getSnapshot('white').historySan).toEqual(['e1h1']);
+    expect(room.getSnapshot('white').fen.split(' ')[0].split('/')[7]).toBe('R4RK1');
+  });
+
+  it('fog: undo rebuilds the position from the recorded moves', () => {
+    const room = fogRoom();
+    room.move('white', { from: 'e2', to: 'e4' });
+    room.offerUndo('white');
+    room.respondUndo('black', true);
+    expect(room.getSnapshot('white').fen.split(' ')[0]).toBe('8/8/8/8/8/8/PPPPPPPP/RNBQKBNR');
+    expect(room.getSnapshot('white').historySan).toEqual([]);
+  });
+
+  it('gives non-fog snapshots no fog fields', () => {
+    const room = new Room('r1', 0, 'white');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    const snapshot = room.getSnapshot('white');
+    expect(snapshot.fog).toBe(false);
+    expect(snapshot.visible).toBeNull();
+    expect(snapshot.dests).toBeNull();
+  });
 });

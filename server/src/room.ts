@@ -1,10 +1,20 @@
 // server/src/room.ts
 import type WebSocket from 'ws';
-import { applyMove, createGame, toChessopsMove, type MoveInput } from './chessRules.js';
-import type { Position } from 'chessops/chess';
-import type { Move, Rules } from 'chessops/types';
+import {
+  applyMove,
+  createGame,
+  toChessopsMove,
+  type GameOverResult,
+  type MoveInput,
+} from './chessRules.js';
+import { fogDests, fogMoves, fogOutcome, maskedFen, visibleSquares } from './fogOfWar.js';
+import { normalizeMove, type Position } from 'chessops/chess';
+import { isNormal, type Move, type Rules } from 'chessops/types';
 import { makeFen } from 'chessops/fen';
+import { makeSquare, makeUci } from 'chessops/util';
 import { generateToken } from './idGen.js';
+
+const EMPTY_BOARD_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
 
 export type Color = 'white' | 'black';
 export type Seat = Color | 'spectator';
@@ -26,6 +36,14 @@ export interface StateSnapshot {
   chess960: boolean;
   checksRemaining: { white: number; black: number } | null;
   startFen: string;
+  // Fog of War: `fog` is set for the whole game. While it is unfinished,
+  // `fen` / `historySan` are the viewer's masked versions, `visible` lists
+  // the squares they can see and `dests` their legal moves (the masked board
+  // is not enough to compute them client-side). null outside fog games and
+  // once a fog game is over.
+  fog: boolean;
+  visible: string[] | null;
+  dests: Record<string, string[]> | null;
 }
 
 interface SeatInfo {
@@ -36,6 +54,12 @@ interface SeatInfo {
 export interface ActionResult {
   ok: boolean;
   error?: string;
+}
+
+interface PlayedMove {
+  move: Move;
+  notation: string;
+  outcome: GameOverResult;
 }
 
 export class Room {
@@ -53,6 +77,7 @@ export class Room {
   private readonly colorPref: Color | 'random';
   private readonly rules: Rules;
   private readonly chess960: boolean;
+  private readonly fog: boolean;
   private chess: Position;
   private readonly initialFen: string;
   private moveHistorySan: string[] = [];
@@ -72,7 +97,8 @@ export class Room {
     startFen?: string,
     rules: Rules = 'chess',
     chess960: boolean = false,
-    incrementMs: number = 0
+    incrementMs: number = 0,
+    fog: boolean = false
   ) {
     this.id = id;
     this.timeControlMs = timeControlMs;
@@ -82,6 +108,7 @@ export class Room {
     this.now = now;
     this.rules = rules;
     this.chess960 = chess960;
+    this.fog = fog;
     this.chess = createGame(rules, startFen);
     this.initialFen = makeFen(this.chess.toSetup());
     // The game's starting position is itself the first occurrence for
@@ -147,14 +174,11 @@ export class Room {
     const turnColor: Color = this.chess.turn === 'white' ? 'white' : 'black';
     if (seat !== turnColor) return { ok: false, error: 'not your turn' };
 
-    const chessMove = toChessopsMove(this.chess, input);
-    if (!chessMove) return { ok: false, error: 'illegal move' };
+    const played = this.fog ? this.playFogMove(input) : this.playStandardMove(input);
+    if (!played) return { ok: false, error: 'illegal move' };
 
-    const result = applyMove(this.chess, input);
-    if (!result.ok) return { ok: false, error: result.error };
-
-    this.moveHistorySan.push(result.san!);
-    this.moves.push(chessMove);
+    this.moveHistorySan.push(played.notation);
+    this.moves.push(played.move);
     const repetitionCount = this.recordAndCountRepetition();
 
     const now = this.now();
@@ -165,14 +189,40 @@ export class Room {
     this.drawOfferBy = null;
     this.undoOfferBy = null;
 
-    if (result.gameOver) {
-      this.finish(result.result!, result.resultReason!);
+    if (played.outcome.gameOver) {
+      this.finish(played.outcome.result!, played.outcome.resultReason!);
     } else if (this.chess.halfmoves >= 100) {
       this.finish('1/2-1/2', 'fifty-move');
     } else if (repetitionCount >= 3) {
       this.finish('1/2-1/2', 'threefold-repetition');
     }
     return { ok: true };
+  }
+
+  private playStandardMove(input: MoveInput): PlayedMove | undefined {
+    const move = toChessopsMove(this.chess, input);
+    if (!move) return undefined;
+    const result = applyMove(this.chess, input);
+    if (!result.ok) return undefined;
+    return { move, notation: result.san!, outcome: result };
+  }
+
+  // Fog of War moves are recorded as UCI: plenty of them (a king stepping
+  // into attack, ignoring a check) are illegal chess, which SAN can't express.
+  private playFogMove(input: MoveInput): PlayedMove | undefined {
+    const requested = toChessopsMove(this.chess, input);
+    if (!requested || !isNormal(requested)) return undefined;
+    // Turns a two-square king drag (e1-g1) into chessops' king-takes-rook
+    // castling encoding (e1-h1), which is what fogMoves() produces.
+    const wanted = normalizeMove(this.chess, requested);
+    if (!isNormal(wanted)) return undefined;
+    const move = fogMoves(this.chess).find(
+      (m) => m.from === wanted.from && m.to === wanted.to && m.promotion === wanted.promotion
+    );
+    if (!move) return undefined;
+    const mover = this.chess.turn;
+    this.chess.play(move);
+    return { move, notation: makeUci(move), outcome: fogOutcome(this.chess, mover) };
   }
 
   private recordAndCountRepetition(): number {
@@ -257,7 +307,7 @@ export class Room {
     return false;
   }
 
-  getSnapshot(): StateSnapshot {
+  getSnapshot(viewer: Seat = 'spectator'): StateSnapshot {
     const turnColor: Color = this.chess.turn === 'white' ? 'white' : 'black';
     let clocks = { ...this.clocks };
     if (this.status === 'playing' && this.timeControlMs > 0 && this.lastMoveAt !== null) {
@@ -265,7 +315,7 @@ export class Room {
       clocks = { ...clocks, [turnColor]: Math.max(0, clocks[turnColor] - elapsed) };
     }
     const remainingChecks = this.chess.remainingChecks;
-    return {
+    const snapshot: StateSnapshot = {
       roomId: this.id,
       status: this.status,
       fen: makeFen(this.chess.toSetup()),
@@ -281,6 +331,27 @@ export class Room {
       chess960: this.chess960,
       checksRemaining: remainingChecks ? { white: remainingChecks.white, black: remainingChecks.black } : null,
       startFen: this.initialFen,
+      fog: this.fog,
+      visible: null,
+      dests: null,
+    };
+    if (!this.fog || this.status === 'finished') return snapshot;
+    return { ...snapshot, ...this.fogView(viewer) };
+  }
+
+  private fogView(viewer: Seat): Pick<StateSnapshot, 'fen' | 'historySan' | 'visible' | 'dests'> {
+    if (viewer === 'spectator') {
+      return { fen: EMPTY_BOARD_FEN, historySan: this.moveHistorySan.map(() => '?'), visible: [], dests: {} };
+    }
+    // Fog of War always starts from the standard position, so white's moves
+    // are the even plies.
+    const ownParity = viewer === 'white' ? 0 : 1;
+    const myTurn = this.status === 'playing' && this.chess.turn === viewer;
+    return {
+      fen: maskedFen(this.chess, viewer),
+      historySan: this.moveHistorySan.map((uci, i) => (i % 2 === ownParity ? uci : '?')),
+      visible: Array.from(visibleSquares(this.chess, viewer), (square) => makeSquare(square)),
+      dests: myTurn ? fogDests(this.chess) : {},
     };
   }
 

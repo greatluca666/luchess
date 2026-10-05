@@ -75,4 +75,13 @@ describe('variant selection over the API', () => {
     expect(state.fen.split(' ')[0].endsWith('[]')).toBe(true);
     ws.close();
   });
+
+  it('creates a Fog of War room: chess rules, fog flag, masked view for the joining player', async () => {
+    const { ws, state } = await createAppAndConnect('fogofwar');
+    expect(state.variant).toBe('chess');
+    expect(state.fog).toBe(true);
+    expect(state.visible).toHaveLength(32);
+    expect(state.fen.split(' ')[0]).toBe('8/8/8/8/8/8/PPPPPPPP/RNBQKBNR');
+    ws.close();
+  });
 });

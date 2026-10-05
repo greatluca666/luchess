@@ -15,11 +15,12 @@ export class RoomManager {
     rules: Rules = 'chess',
     startFen?: string,
     chess960: boolean = false,
-    incrementMs: number = 0
+    incrementMs: number = 0,
+    fog: boolean = false
   ): Room {
     let id = generateRoomId();
     while (this.rooms.has(id)) id = generateRoomId();
-    const room = new Room(id, timeControlMs, colorPref, Date.now, startFen, rules, chess960, incrementMs);
+    const room = new Room(id, timeControlMs, colorPref, Date.now, startFen, rules, chess960, incrementMs, fog);
     this.rooms.set(id, room);
     return room;
   }
