@@ -645,3 +645,11 @@ cg-board square.drop-dest {
 cg-board square.fog {
   background: rgba(12, 12, 10, 0.86);
 }
+
+/* On phones the page content starts at the very top, right under the fixed
+   language toggle — leave room for it. */
+@media (max-width: 699px) {
+  body {
+    padding-top: 3.25rem;
+  }
+}
