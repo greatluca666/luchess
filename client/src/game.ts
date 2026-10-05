@@ -10,7 +10,7 @@ import { isNormal } from 'chessops/types';
 import { makeSquare } from 'chessops/util';
 import { chessgroundDests } from 'chessops/compat';
 import { WsClient } from './wsClient.js';
-import { formatClock } from './clock.js';
+import { clockText } from './clock.js';
 import { shouldShowInvitePanel } from './invitePanel.js';
 import { computeCapturedPieces, type Role } from './capturedPieces.js';
 import { buildMoveRows, formatFogMove } from './moveList.js';
@@ -173,8 +173,8 @@ function applyState(state: any): void {
   }
   previousMoveCount = state.historySan.length;
 
-  clockTop.textContent = formatClock(mySeat === 'black' ? state.clocks.white : state.clocks.black);
-  clockBottom.textContent = formatClock(mySeat === 'black' ? state.clocks.black : state.clocks.white);
+  clockTop.textContent = clockText(mySeat === 'black' ? state.clocks.white : state.clocks.black, state.timeControlMs);
+  clockBottom.textContent = clockText(mySeat === 'black' ? state.clocks.black : state.clocks.white, state.timeControlMs);
 
   variantLabelEl.textContent = variantLabel(variantId(state));
   renderCaptured(state);
