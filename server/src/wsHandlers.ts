@@ -19,7 +19,12 @@ export function handleMessage(room: Room, ws: WebSocket, raw: string): void {
   let result: { ok: boolean; error?: string };
   switch (msg.type) {
     case 'move':
-      result = room.move(seat, { from: msg.from, to: msg.to, promotion: msg.promotion });
+      result = room.move(
+        seat,
+        typeof msg.drop === 'string'
+          ? { drop: msg.drop, to: msg.to }
+          : { from: msg.from, to: msg.to, promotion: msg.promotion }
+      );
       break;
     case 'resign':
       result = room.resign(seat);

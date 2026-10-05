@@ -34,4 +34,11 @@ describe('handleMessage', () => {
     handleMessage(room, ws, '{not json');
     expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('invalid message'));
   });
+
+  it('routes a crazyhouse drop message to room.move as a drop', () => {
+    const ws = fakeWs();
+    const room = { seatColorFor: () => 'white', move: vi.fn().mockReturnValue({ ok: true }) } as any;
+    handleMessage(room, ws, JSON.stringify({ type: 'move', drop: 'knight', to: 'f3' }));
+    expect(room.move).toHaveBeenCalledWith('white', { drop: 'knight', to: 'f3' });
+  });
 });

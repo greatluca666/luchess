@@ -1,8 +1,8 @@
 // server/src/room.ts
 import type WebSocket from 'ws';
-import { applyMove, createGame, toChessopsMove, type ChessopsMove, type MoveInput } from './chessRules.js';
+import { applyMove, createGame, toChessopsMove, type MoveInput } from './chessRules.js';
 import type { Position } from 'chessops/chess';
-import type { Rules } from 'chessops/types';
+import type { Move, Rules } from 'chessops/types';
 import { makeFen } from 'chessops/fen';
 import { generateToken } from './idGen.js';
 
@@ -56,7 +56,7 @@ export class Room {
   private chess: Position;
   private readonly initialFen: string;
   private moveHistorySan: string[] = [];
-  private moves: ChessopsMove[] = [];
+  private moves: Move[] = [];
   private repetitionCounts = new Map<string, number>();
   private clocks: { white: number; black: number };
   private lastMoveAt: number | null = null;

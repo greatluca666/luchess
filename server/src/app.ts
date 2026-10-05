@@ -48,7 +48,8 @@ export function createApp(options: AppOptions): http.Server {
       variant === 'atomic' ||
       variant === 'antichess' ||
       variant === 'racingkings' ||
-      variant === 'horde'
+      variant === 'horde' ||
+      variant === 'crazyhouse'
     ) {
       rules = variant;
     }

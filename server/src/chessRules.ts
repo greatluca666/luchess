@@ -1,23 +1,23 @@
 import { defaultPosition, setupPosition } from 'chessops/variant';
-import type { Rules } from 'chessops/types';
+import type { Move, Role, Rules } from 'chessops/types';
 import type { Position } from 'chessops/chess';
 import { parseFen } from 'chessops/fen';
 import { parseSquare, squareRank } from 'chessops/util';
 import { makeSan } from 'chessops/san';
 
-export type Role = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
-
-export interface MoveInput {
+export interface NormalMoveInput {
   from: string;
   to: string;
   promotion?: string;
 }
 
-export interface ChessopsMove {
-  from: number;
-  to: number;
-  promotion?: Role;
+// Crazyhouse: place a piece from the mover's pocket onto an empty square.
+export interface DropMoveInput {
+  drop: string;
+  to: string;
 }
+
+export type MoveInput = NormalMoveInput | DropMoveInput;
 
 export type ResultReason =
   | 'checkmate'
@@ -25,7 +25,8 @@ export type ResultReason =
   | 'insufficient-material'
   | 'variant-end'
   | 'threefold-repetition'
-  | 'fifty-move';
+  | 'fifty-move'
+  | 'king-captured';
 
 export interface GameOverResult {
   gameOver: boolean;
@@ -46,8 +47,14 @@ const PROMOTION_ROLES: Record<string, Role> = {
   n: 'knight',
 };
 
+const DROP_ROLES = new Set<string>(['pawn', 'knight', 'bishop', 'rook', 'queen']);
+
 function promotionRole(letter: string | undefined): Role {
-  return PROMOTION_ROLES[letter ?? 'q'] ?? 'queen';
+  // hasOwnProperty, not a plain lookup: `letter` comes off the websocket and
+  // '__proto__' would otherwise resolve to Object.prototype.
+  return letter !== undefined && Object.prototype.hasOwnProperty.call(PROMOTION_ROLES, letter)
+    ? PROMOTION_ROLES[letter]
+    : 'queen';
 }
 
 export function createGame(rules: Rules = 'chess', fen?: string): Position {
@@ -68,10 +75,18 @@ export function isPromotionMove(pos: Position, from: number, to: number): boolea
   return rank === 0 || rank === 7;
 }
 
-export function toChessopsMove(pos: Position, move: MoveInput): ChessopsMove | undefined {
-  const from = parseSquare(move.from);
+export function toChessopsMove(pos: Position, move: MoveInput): Move | undefined {
+  // Inputs come straight off the websocket, so their shape can't be trusted
+  // — parseSquare() throws on anything that isn't a string.
+  if (typeof move.to !== 'string') return undefined;
   const to = parseSquare(move.to);
-  if (from === undefined || to === undefined) return undefined;
+  if (to === undefined) return undefined;
+  if ('drop' in move) {
+    return DROP_ROLES.has(move.drop) ? { role: move.drop as Role, to } : undefined;
+  }
+  if (typeof move.from !== 'string') return undefined;
+  const from = parseSquare(move.from);
+  if (from === undefined) return undefined;
   // Only attach a promotion role when the move is actually a pawn reaching
   // the last rank. The real client always sends `promotion: 'q'` on every
   // move (even ordinary ones like e2-e4), so we cannot rely on the caller's

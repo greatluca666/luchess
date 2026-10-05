@@ -349,4 +349,39 @@ describe('Room', () => {
     expect(antichessBoard.pieces('white', 'pawn').size()).toBe(8);
     expect(antichessBoard.pieces('black', 'king').size()).toBe(1);
   });
+
+  it('lets a crazyhouse player drop a pocket piece and records it as N@ SAN', () => {
+    const room = new Room(
+      'r1', 0, 'white', Date.now,
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR[Nn] w KQkq - 0 1', 'crazyhouse'
+    );
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    expect(room.move('white', { drop: 'knight', to: 'e4' }).ok).toBe(true);
+    const snapshot = room.getSnapshot();
+    expect(snapshot.historySan).toEqual(['N@e4']);
+    expect(snapshot.fen.startsWith('rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR[n] b')).toBe(true);
+  });
+
+  it('rejects crazyhouse drops of missing pieces, pawns onto the back rank, and onto occupied squares', () => {
+    const room = new Room('r1', 0, 'white', Date.now, '4k3/8/8/8/8/8/8/4K3[P] w - - 0 1', 'crazyhouse');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    expect(room.move('white', { drop: 'queen', to: 'e4' }).ok).toBe(false);
+    expect(room.move('white', { drop: 'pawn', to: 'a8' }).ok).toBe(false);
+    expect(room.move('white', { drop: 'pawn', to: 'a1' }).ok).toBe(false);
+    expect(room.move('white', { drop: 'pawn', to: 'e1' }).ok).toBe(false);
+    expect(room.move('white', { drop: 'king', to: 'a4' }).ok).toBe(false);
+    expect(room.move('white', { drop: 'pawn', to: 'a4' }).ok).toBe(true);
+  });
+
+  it('puts captured pieces into the capturer\'s crazyhouse pocket', () => {
+    const room = new Room('r1', 0, 'white', Date.now, undefined, 'crazyhouse');
+    room.connect(fakeWs());
+    room.connect(fakeWs());
+    room.move('white', { from: 'e2', to: 'e4' });
+    room.move('black', { from: 'd7', to: 'd5' });
+    room.move('white', { from: 'e4', to: 'd5' });
+    expect(room.getSnapshot().fen.split(' ')[0].endsWith('[P]')).toBe(true);
+  });
 });

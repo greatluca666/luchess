@@ -68,4 +68,11 @@ describe('variant selection over the API', () => {
     expect(state.chess960).toBe(false);
     ws.close();
   });
+
+  it('creates a Crazyhouse room whose FEN carries (empty) pockets', async () => {
+    const { ws, state } = await createAppAndConnect('crazyhouse');
+    expect(state.variant).toBe('crazyhouse');
+    expect(state.fen.split(' ')[0].endsWith('[]')).toBe(true);
+    ws.close();
+  });
 });

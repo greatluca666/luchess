@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createGame, applyMove, checkGameOver } from '../src/chessRules.js';
+import { createGame, applyMove, checkGameOver, toChessopsMove } from '../src/chessRules.js';
 
 describe('chessRules', () => {
   it('applies a legal opening move', () => {
@@ -58,5 +58,19 @@ describe('chessRules', () => {
     const result = applyMove(pos, { from: 'e7', to: 'e8', promotion: 'q' });
     expect(result.ok).toBe(true);
     expect(result.san).toBe('e8=Q');
+  });
+});
+
+describe('toChessopsMove input hardening', () => {
+  it('rejects non-string squares instead of throwing', () => {
+    const pos = createGame();
+    expect(toChessopsMove(pos, { from: 5 as unknown as string, to: 'e4' })).toBeUndefined();
+    expect(toChessopsMove(pos, { from: 'e2', to: undefined as unknown as string })).toBeUndefined();
+  });
+
+  it('ignores prototype keys as a promotion or drop role', () => {
+    const pos = createGame('chess', '4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
+    expect(toChessopsMove(pos, { from: 'a7', to: 'a8', promotion: '__proto__' })).toEqual({ from: 48, to: 56, promotion: 'queen' });
+    expect(toChessopsMove(pos, { drop: '__proto__', to: 'e4' })).toBeUndefined();
   });
 });
