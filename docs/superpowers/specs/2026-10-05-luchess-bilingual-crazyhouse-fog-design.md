@@ -38,11 +38,10 @@ const zh: Record<keyof typeof en, string> = { 'home.tagline': '和朋友下棋 �
 export type Lang = 'en' | 'zh';
 export function getLang(): Lang;
 export function setLang(lang: Lang): void;   // 写 localStorage + 触发 'langchange' 事件
-export function t(key: keyof typeof en, params?: Record<string, string | number>): string;
+export function t(key: keyof typeof en): string;
 ```
 
 - `zh` 的类型用 `en` 的 key 约束 → 漏翻译 / 多余 key 直接 `tsc` 报错。
-- 参数插值用 `{name}` 占位(例: `'result.win': '{color}胜 · {reason}'`)。
 - 现有 `VARIANT_LABELS` / `GAME_TEXT` 两个导出删除, 调用方改用 `t()`。
 
 ### 语言选择
@@ -53,7 +52,7 @@ export function t(key: keyof typeof en, params?: Record<string, string | number>
 
 ### 静态文案
 
-- HTML 元素加 `data-i18n="key"`(替换 textContent)、`data-i18n-placeholder`、`data-i18n-title`。
+- HTML 元素加 `data-i18n="key"`(替换 textContent)。label 里的文字包一层 `<span>`, 避免替换文字时把里面的 `<select>` 一起清掉。
 - `applyStaticI18n(root)` 在页面加载和切换语言时执行, 同时更新 `<html lang>` 和 `<title>`。
 - 新模块 `client/src/langToggle.ts`: 在三个页面右上角插入 `中 / EN` 按钮, 点击 `setLang()`。
 
@@ -132,7 +131,7 @@ export function maskedFen(pos: Position, color: Color): string;
 ### Room 改动
 
 - `move()`: fog 模式下用 `fogMoves(pos)` 判断合法性(不用 `isLegal`), 合法则 `pos.play()`。走完检查对方王是否已不在棋盘上 → `finish(winner, 'king-captured')`; 否则对新的一方算 `fogMoves`, 为空 → `finish('1/2-1/2', 'stalemate')`。不调用 chessops 的 `outcome()`。
-- 棋谱: fog 模式下 `moveHistorySan` 改存 UCI(`e2e4`, `e1h1`, `e7e8q`)。原因: "王走进被攻击格"这类走法在标准规则下不合法, `makeSan` / `parseSan` 都处理不了。数据库 `pgn` 列对 fog 对局存空格分隔的 UCI 序列, 由 `variant = 'fogofwar'` 区分。
+- 棋谱: fog 模式下 `moveHistorySan` 改存 UCI(`e2e4`, `e1h1`, `e7e8q`)。原因: "王走进被攻击格"这类走法在标准规则下不合法, `makeSan` / `parseSan` 都处理不了。数据库 `pgn` 列对 fog 对局存带回合号的 UCI 序列(`1. e2e4 e7e5`, 与 SAN 对局格式一致, 回放解析逻辑通用), 由 `variant = 'fogofwar'` 区分。
 - `getSnapshot(viewer: Seat)` 改为按观看者生成。非 fog 对局对所有人返回相同内容(行为不变)。fog 对局在 `status !== 'finished'` 时:
 
   | 字段 | 白方 / 黑方玩家 | 观战者 |
