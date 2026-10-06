@@ -52,7 +52,14 @@ const en = {
   'variant.fogofwar': 'Fog of War',
   'variant.fogofwar.desc': 'You only see squares your pieces can reach — capture the king to win',
 
-  'game.waiting': 'Waiting for opponent... Share this link with a friend:',
+  'game.waiting': 'Waiting for opponent — share the room number or this link:',
+  'game.room': 'Room',
+  'game.roomNumber': 'Room number',
+  'game.rematch': 'Rematch',
+  'game.rematchSent': 'Rematch offered',
+  'game.opponentOffersRematch': 'Opponent wants a rematch',
+  'game.roomNotFound': 'This room does not exist or has expired.',
+  'game.backHome': 'Back to home',
   'game.copyInvite': 'Copy invite link',
   'game.copied': 'Copied!',
   'game.copiedFallback': 'Selected, press Ctrl+C to copy',
@@ -91,6 +98,8 @@ const en = {
   'error.noDrawOffer': 'There is no draw offer to answer',
   'error.noUndoOffer': 'There is no undo request to answer',
   'error.noMoveToUndo': 'There is no move to undo',
+  'error.notFinished': 'The game is not over yet',
+  'error.noRematchOffer': 'There is no rematch offer to answer',
 } as const;
 
 export type I18nKey = keyof typeof en;
@@ -141,7 +150,14 @@ const zh: Record<I18nKey, string> = {
   'variant.fogofwar': '暗棋',
   'variant.fogofwar.desc': '只能看见自己棋子能走到的格子，吃掉对方的王获胜',
 
-  'game.waiting': '等待对手加入…把这个链接发给朋友：',
+  'game.waiting': '等待对手加入…把房间号或链接发给朋友：',
+  'game.room': '房间',
+  'game.roomNumber': '房间号',
+  'game.rematch': '再来一局',
+  'game.rematchSent': '已邀请再来一局',
+  'game.opponentOffersRematch': '对手想再来一局',
+  'game.roomNotFound': '房间不存在或已过期。',
+  'game.backHome': '回到首页',
   'game.copyInvite': '复制邀请链接',
   'game.copied': '已复制！',
   'game.copiedFallback': '已选中，按 Ctrl+C 复制',
@@ -180,6 +196,8 @@ const zh: Record<I18nKey, string> = {
   'error.noDrawOffer': '没有待回应的和棋提议',
   'error.noUndoOffer': '没有待回应的悔棋请求',
   'error.noMoveToUndo': '没有可以悔的棋',
+  'error.notFinished': '对局还没有结束',
+  'error.noRematchOffer': '没有待回应的再来一局邀请',
 };
 
 export const DICTIONARIES: Record<Lang, Record<I18nKey, string>> = { en, zh };
@@ -251,6 +269,8 @@ const ERROR_KEYS: Record<string, I18nKey> = {
   'no pending draw offer for you': 'error.noDrawOffer',
   'no pending undo offer for you': 'error.noUndoOffer',
   'no move to undo': 'error.noMoveToUndo',
+  'game is not finished': 'error.notFinished',
+  'no pending rematch offer for you': 'error.noRematchOffer',
 };
 
 export function errorText(message: string): string {

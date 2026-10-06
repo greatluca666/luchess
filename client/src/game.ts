@@ -38,6 +38,8 @@ const variantLabelEl = document.getElementById('variant-label')!;
 const capturedTop = document.getElementById('captured-top')!;
 const capturedBottom = document.getElementById('captured-bottom')!;
 const errorMsgEl = document.getElementById('error-msg')!;
+const rematchBtn = document.getElementById('rematch-btn') as HTMLButtonElement;
+document.getElementById('room-code')!.textContent = roomId;
 
 let mySeat: 'white' | 'black' | 'spectator' = 'spectator';
 let localChess: Position = defaultPosition('chess');
@@ -68,10 +70,17 @@ const ws = new WsClient({
     if (msg.type === 'joined') {
       mySeat = msg.seat;
     } else if (msg.type === 'state') {
+      // The server says which seat each snapshot is for; it flips on a rematch.
+      if (msg.seat) mySeat = msg.seat;
       applyState(msg);
     } else if (msg.type === 'error') {
       showError(msg.message);
     }
+  },
+  onFatal: () => {
+    invitePanel.hidden = true;
+    offerBanner.hidden = false;
+    offerBanner.innerHTML = `${t('game.roomNotFound')} <a href="/">${t('game.backHome')}</a>`;
   },
 });
 
@@ -176,7 +185,7 @@ function applyState(state: any): void {
   clockTop.textContent = clockText(mySeat === 'black' ? state.clocks.white : state.clocks.black, state.timeControlMs);
   clockBottom.textContent = clockText(mySeat === 'black' ? state.clocks.black : state.clocks.white, state.timeControlMs);
 
-  variantLabelEl.textContent = variantLabel(variantId(state));
+  variantLabelEl.textContent = `${variantLabel(variantId(state))} · ${t('game.room')} ${roomId}`;
   renderCaptured(state);
 
   const moves: string[] = state.fog ? state.historySan.map(formatFogMove) : state.historySan;
@@ -188,10 +197,23 @@ function applyState(state: any): void {
   renderOfferBanner(state);
   renderControls(state);
 
-  if (state.status === 'finished') {
-    offerBanner.hidden = false;
-    offerBanner.textContent = `${t('game.gameOver')}: ${resultText(state.result, state.resultReason)}`;
-  }
+  if (state.status === 'finished') renderGameOver(state);
+}
+
+function renderGameOver(state: any): void {
+  offerBanner.hidden = false;
+  offerBanner.textContent = `${t('game.gameOver')}: ${resultText(state.result, state.resultReason)}`;
+  if (!isPlayer() || !state.rematchOfferBy || state.rematchOfferBy === mySeat) return;
+  const line = document.createElement('div');
+  line.className = 'rematch-offer';
+  line.innerHTML = `${t('game.opponentOffersRematch')} <button id="accept-rematch">${t('game.accept')}</button> <button id="reject-rematch">${t('game.reject')}</button>`;
+  offerBanner.appendChild(line);
+  document.getElementById('accept-rematch')!.addEventListener('click', () =>
+    ws.send({ type: 'respondRematch', accept: true })
+  );
+  document.getElementById('reject-rematch')!.addEventListener('click', () =>
+    ws.send({ type: 'respondRematch', accept: false })
+  );
 }
 
 function applyStandardBoard(state: any, turnColor: 'white' | 'black'): void {
@@ -360,9 +382,14 @@ function renderControls(state: any): void {
   resignBtn.disabled = !canAct;
   drawBtn.disabled = !canAct || state.drawOfferBy === mySeat;
   undoBtn.disabled = !canAct || state.undoOfferBy === mySeat || state.historySan.length === 0;
+  rematchBtn.hidden = !(isPlayer && state.status === 'finished');
+  const rematchOffered = state.rematchOfferBy === mySeat;
+  rematchBtn.disabled = rematchOffered;
+  rematchBtn.textContent = rematchOffered ? t('game.rematchSent') : t('game.rematch');
 }
 
 resignBtn.addEventListener('click', () => ws.send({ type: 'resign' }));
+rematchBtn.addEventListener('click', () => ws.send({ type: 'offerRematch' }));
 drawBtn.addEventListener('click', () => ws.send({ type: 'offerDraw' }));
 undoBtn.addEventListener('click', () => ws.send({ type: 'offerUndo' }));
 

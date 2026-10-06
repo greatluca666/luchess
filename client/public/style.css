@@ -115,7 +115,9 @@ button:disabled {
 #create-btn,
 #copy-invite-btn,
 #accept-draw,
-#accept-undo {
+#accept-undo,
+#accept-rematch,
+#rematch-btn {
   background: var(--accent);
   border-color: var(--accent);
   color: #0d1a05;
@@ -126,7 +128,9 @@ button:disabled {
 #create-btn:hover:not(:disabled),
 #copy-invite-btn:hover:not(:disabled),
 #accept-draw:hover:not(:disabled),
-#accept-undo:hover:not(:disabled) {
+#accept-undo:hover:not(:disabled),
+#accept-rematch:hover:not(:disabled),
+#rematch-btn:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }
@@ -688,4 +692,19 @@ cg-board square.fog {
 .join-row input {
   flex: 1;
   min-width: 0;
+}
+
+.room-code-line {
+  margin: 0.5rem 0;
+}
+
+.room-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.6rem;
+  letter-spacing: 0.15em;
+  color: var(--text);
+}
+
+.rematch-offer {
+  margin-top: 0.5rem;
 }

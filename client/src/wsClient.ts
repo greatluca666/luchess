@@ -2,6 +2,9 @@ export interface WsClientOptions {
   roomId: string;
   onMessage(msg: any): void;
   onOpen?(): void;
+  // Called instead of reconnecting when the server refuses the room for good
+  // (it closes with 1008 for an unknown room or a malformed path).
+  onFatal?(reason: string): void;
 }
 
 const TOKEN_PREFIX = 'luchess:room:';
@@ -11,12 +14,14 @@ export class WsClient {
   private readonly roomId: string;
   private readonly onMessage: (msg: any) => void;
   private readonly onOpen?: () => void;
+  private readonly onFatal?: (reason: string) => void;
   private closedByUser = false;
 
   constructor(options: WsClientOptions) {
     this.roomId = options.roomId;
     this.onMessage = options.onMessage;
     this.onOpen = options.onOpen;
+    this.onFatal = options.onFatal;
     this.connect();
   }
 
@@ -37,7 +42,11 @@ export class WsClient {
       }
       this.onMessage(msg);
     });
-    ws.addEventListener('close', () => {
+    ws.addEventListener('close', (event: any) => {
+      if (event?.code === 1008) {
+        this.onFatal?.(event.reason ?? '');
+        return;
+      }
       if (!this.closedByUser) setTimeout(() => this.connect(), 1000);
     });
   }

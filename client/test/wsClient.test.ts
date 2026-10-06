@@ -72,4 +72,13 @@ describe('WsClient', () => {
     client.send({ type: 'resign' });
     expect(FakeWebSocket.instances[0].sent).toEqual([JSON.stringify({ type: 'resign' })]);
   });
+
+  it('stops reconnecting and reports it when the server rejects the room', () => {
+    const onFatal = vi.fn();
+    new WsClient({ roomId: 'abc123', onMessage: () => {}, onFatal });
+    FakeWebSocket.instances[0].emit('close', { code: 1008, reason: 'room not found' });
+    vi.advanceTimersByTime(5000);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    expect(onFatal).toHaveBeenCalledWith('room not found');
+  });
 });

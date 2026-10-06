@@ -71,5 +71,7 @@ describe('i18n', () => {
     expect(errorText('not your turn')).toBe('还没轮到你');
     expect(errorText('spectators cannot resign')).toBe('观战者不能进行此操作');
     expect(errorText('something unexpected')).toBe('something unexpected');
+    expect(errorText('game is not finished')).toBe('对局还没有结束');
+    expect(errorText('no pending rematch offer for you')).toBe('没有待回应的再来一局邀请');
   });
 });

@@ -20,7 +20,8 @@
     <div class="game-layout card">
       <div class="board-col">
         <div id="invite-panel" class="invite-panel" hidden>
-          <p data-i18n="game.waiting">Waiting for opponent... Share this link with a friend:</p>
+          <p data-i18n="game.waiting">Waiting for opponent — share the room number or this link:</p>
+          <p class="room-code-line"><span data-i18n="game.roomNumber">Room number</span> <strong id="room-code" class="room-code"></strong></p>
           <div class="invite-row">
             <input id="invite-link" type="text" readonly />
             <button id="copy-invite-btn" data-i18n="game.copyInvite">Copy invite link</button>
@@ -38,6 +39,7 @@
           <button id="resign-btn" data-i18n="game.resign">Resign</button>
           <button id="draw-btn" data-i18n="game.draw">Draw</button>
           <button id="undo-btn" data-i18n="game.undo">Undo</button>
+          <button id="rematch-btn" hidden>Rematch</button>
         </div>
         <div id="error-msg" class="error-msg" hidden></div>
         <div id="offer-banner" class="offer-banner" hidden></div>
