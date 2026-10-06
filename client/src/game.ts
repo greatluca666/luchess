@@ -181,6 +181,14 @@ function applyState(state: any): void {
     previousPosition = localChess;
   }
   previousMoveCount = state.historySan.length;
+  // A rematch (or undoing every move) brings the move list back to empty.
+  // chessground only ever sets its last-move highlight from local moves and
+  // keeps it through ground.set({ fen }), so clear it — and any premove
+  // queued against the old position — explicitly.
+  if (prevMoveCount > 0 && state.historySan.length === 0) {
+    ground.cancelPremove();
+    ground.set({ lastMove: undefined });
+  }
 
   clockTop.textContent = clockText(mySeat === 'black' ? state.clocks.white : state.clocks.black, state.timeControlMs);
   clockBottom.textContent = clockText(mySeat === 'black' ? state.clocks.black : state.clocks.white, state.timeControlMs);
