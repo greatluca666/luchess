@@ -9,4 +9,11 @@ describe('static pages', () => {
     const html = readFileSync(new URL(`../public/${page}`, import.meta.url), 'utf8');
     expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1" />');
   });
+
+  it.each(PAGES)('%s has a top bar linking home, a language switch and a favicon', (page) => {
+    const html = readFileSync(new URL(`../public/${page}`, import.meta.url), 'utf8');
+    expect(html).toContain('<a class="brand" href="/">');
+    expect(html).toContain('<button type="button" class="lang-toggle"></button>');
+    expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />');
+  });
 });

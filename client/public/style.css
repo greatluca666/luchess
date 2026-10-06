@@ -343,10 +343,10 @@ input[type="number"]:focus {
      - horizontal: body's (1rem*2) + .card's (1.5rem*2)
      - vertical: everything else stacked in .board-col (body/card padding,
        variant label, both clocks, both captured rows, the gaps between
-       them) — ~17rem of it — so the board itself shrinks on short desktop
+       them, plus the shared top bar) — ~20rem of it — so the board itself shrinks on short desktop
        viewports (1366x768 and similar) instead of pushing the page past
        one screen and forcing a scroll to see the whole board. */
-  width: min(480px, calc(100vw - 5rem), calc(100vh - 17rem));
+  width: min(480px, calc(100vw - 5rem), calc(100vh - 20rem));
   aspect-ratio: 1 / 1;
   position: relative;
   margin: 0 auto;
@@ -562,15 +562,38 @@ cg-board square.exploding2 {
   }
 }
 
-/* Language switch, fixed in the top-right corner of every page. */
+/* Shared top bar: brand (home link) on the left, language switch on the right. */
+.topbar {
+  max-width: 900px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brand:hover {
+  color: var(--accent);
+}
+
+.brand-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  background: url('/favicon.svg') center / contain no-repeat;
+}
+
 .lang-toggle {
-  position: fixed;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 10;
   padding: 0.3rem 0.75rem;
   font-size: 0.85rem;
-  background: var(--card);
 }
 
 .error-msg {
@@ -644,12 +667,4 @@ cg-board square.drop-dest {
    square is always empty. */
 cg-board square.fog {
   background: rgba(12, 12, 10, 0.86);
-}
-
-/* On phones the page content starts at the very top, right under the fixed
-   language toggle — leave room for it. */
-@media (max-width: 699px) {
-  body {
-    padding-top: 3.25rem;
-  }
 }
