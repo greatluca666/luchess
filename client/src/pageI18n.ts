@@ -10,6 +10,10 @@ export function applyStaticI18n(): void {
     const key = el.dataset.i18n!;
     if (hasKey(key)) el.textContent = t(key);
   });
+  document.querySelectorAll<HTMLElement>('[data-i18n-placeholder]').forEach((el) => {
+    const key = el.dataset.i18nPlaceholder!;
+    if (hasKey(key)) el.setAttribute('placeholder', t(key));
+  });
   document.documentElement.lang = getLang() === 'zh' ? 'zh-CN' : 'en';
 }
 

@@ -68,6 +68,14 @@
           </select>
         </label>
         <button id="create-btn" data-i18n="home.create">Create game</button>
+        <div class="join-room">
+          <label for="join-code" data-i18n="home.joinLabel">Join a room</label>
+          <div class="join-row">
+            <input id="join-code" type="text" inputmode="numeric" autocomplete="off" data-i18n-placeholder="home.joinPlaceholder" placeholder="6-digit room number" />
+            <button id="join-btn" type="button" data-i18n="home.join">Join</button>
+          </div>
+          <p id="join-error" class="error-msg" hidden></p>
+        </div>
         <p><a href="/games" data-i18n="home.history">Game history</a></p>
       </main>
     </div>

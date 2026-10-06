@@ -668,3 +668,24 @@ cg-board square.drop-dest {
 cg-board square.fog {
   background: rgba(12, 12, 10, 0.86);
 }
+
+/* Home: join an existing room by its number. */
+.join-room {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.join-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.join-row input {
+  flex: 1;
+  min-width: 0;
+}

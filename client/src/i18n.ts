@@ -25,6 +25,11 @@ const en = {
   'home.variant': 'Variant',
   'home.create': 'Create game',
   'home.history': 'Game history',
+  'home.joinLabel': 'Join a room',
+  'home.joinPlaceholder': '6-digit room number',
+  'home.join': 'Join',
+  'home.joinInvalid': 'Enter a 6-digit room number',
+  'home.joinNotFound': 'Room not found or expired',
 
   'variant.chess': 'Standard',
   'variant.chess.desc': 'Classic chess rules — no extra setup needed',
@@ -109,6 +114,11 @@ const zh: Record<I18nKey, string> = {
   'home.variant': '玩法',
   'home.create': '创建对局',
   'home.history': '历史对局',
+  'home.joinLabel': '加入房间',
+  'home.joinPlaceholder': '6 位房间号',
+  'home.join': '加入',
+  'home.joinInvalid': '请输入 6 位房间号',
+  'home.joinNotFound': '房间不存在或已过期',
 
   'variant.chess': '标准',
   'variant.chess.desc': '经典国际象棋规则，无需额外设置',

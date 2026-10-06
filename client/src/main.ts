@@ -6,6 +6,8 @@ import { rulesFor } from './variantRules.js';
 import { boardGridFromFen } from './boardFromFen.js';
 import { generateChess960Fen } from './chess960.js';
 import { initPageI18n } from './pageI18n.js';
+import { t } from './i18n.js';
+import { normalizeRoomCode } from './roomCode.js';
 
 const createBtn = document.getElementById('create-btn') as HTMLButtonElement;
 const timeSelect = document.getElementById('time-control') as HTMLSelectElement;
@@ -76,4 +78,36 @@ createBtn.addEventListener('click', async () => {
   location.href = `/game/${roomId}`;
 });
 
-initPageI18n();
+const joinInput = document.getElementById('join-code') as HTMLInputElement;
+const joinBtn = document.getElementById('join-btn') as HTMLButtonElement;
+const joinError = document.getElementById('join-error')!;
+
+function showJoinError(message: string): void {
+  joinError.textContent = message;
+  joinError.hidden = false;
+}
+
+async function joinRoom(): Promise<void> {
+  joinError.hidden = true;
+  const code = normalizeRoomCode(joinInput.value);
+  if (!code) {
+    showJoinError(t('home.joinInvalid'));
+    return;
+  }
+  const res = await fetch(`/api/rooms/${code}`);
+  if (!res.ok) {
+    showJoinError(t('home.joinNotFound'));
+    return;
+  }
+  location.href = `/game/${code}`;
+}
+
+joinBtn.addEventListener('click', () => void joinRoom());
+joinInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') void joinRoom();
+});
+
+// A shown error would stay in the old language — just clear it.
+initPageI18n(() => {
+  joinError.hidden = true;
+});
