@@ -466,4 +466,78 @@ describe('Room', () => {
     expect(snapshot.visible).toBeNull();
     expect(snapshot.dests).toBeNull();
   });
+
+  function finishedGame(startFen?: string) {
+    let now = 1_000_000;
+    const room = new Room('r1', 60_000, 'white', () => now, startFen);
+    const whiteWs = fakeWs();
+    const blackWs = fakeWs();
+    const white = room.connect(whiteWs);
+    room.connect(blackWs);
+    room.resign('white');
+    return { room, whiteWs, blackWs, whiteToken: white.token!, tick: (ms: number) => (now += ms) };
+  }
+
+  it('rematch: accepting starts a fresh game in the same room with colours swapped', () => {
+    const { room, whiteWs, blackWs, whiteToken } = finishedGame();
+    const firstGameId = room.gameId;
+    room.markPersisted();
+    expect(room.offerRematch('black').ok).toBe(true);
+    expect(room.getSnapshot('white').rematchOfferBy).toBe('black');
+    expect(room.respondRematch('white', true).ok).toBe(true);
+
+    expect(room.status).toBe('playing');
+    expect(room.result).toBeNull();
+    expect(room.gameId).not.toBe(firstGameId);
+    expect(room.isPersisted()).toBe(false);
+    expect(room.seatColorFor(whiteWs)).toBe('black');
+    expect(room.seatColorFor(blackWs)).toBe('white');
+    const snapshot = room.getSnapshot('white');
+    expect(snapshot.historySan).toEqual([]);
+    expect(snapshot.clocks).toEqual({ white: 60_000, black: 60_000 });
+    expect(snapshot.rematchOfferBy).toBeNull();
+    // The first game's white player keeps their token, which now means black.
+    expect(room.connect(fakeWs(), whiteToken).seat).toBe('black');
+  });
+
+  it('rematch: both players asking starts it without an explicit accept', () => {
+    const { room } = finishedGame();
+    room.offerRematch('white');
+    expect(room.offerRematch('black').ok).toBe(true);
+    expect(room.status).toBe('playing');
+  });
+
+  it('rematch: declining keeps the finished game and clears the offer', () => {
+    const { room } = finishedGame();
+    room.offerRematch('white');
+    expect(room.respondRematch('black', false).ok).toBe(true);
+    expect(room.status).toBe('finished');
+    expect(room.rematchOfferBy).toBeNull();
+  });
+
+  it('rematch: only players can ask, only once the game is over, and not answer themselves', () => {
+    const live = new Room('r1', 0, 'white');
+    live.connect(fakeWs());
+    live.connect(fakeWs());
+    expect(live.offerRematch('white')).toEqual({ ok: false, error: 'game is not finished' });
+
+    const { room } = finishedGame();
+    expect(room.offerRematch('spectator').ok).toBe(false);
+    room.offerRematch('white');
+    expect(room.respondRematch('white', true)).toEqual({ ok: false, error: 'no pending rematch offer for you' });
+  });
+
+  it('rematch: reuses a custom starting position', () => {
+    const startFen = '4k3/8/8/8/8/8/8/R3K3 w Q - 0 1';
+    const { room } = finishedGame(startFen);
+    room.offerRematch('white');
+    room.respondRematch('black', true);
+    expect(room.getSnapshot().startFen).toBe(startFen);
+  });
+
+  it('tells each viewer which seat the snapshot is for', () => {
+    const room = new Room('r1', 0, 'white');
+    expect(room.getSnapshot('black').seat).toBe('black');
+    expect(room.getSnapshot().seat).toBe('spectator');
+  });
 });

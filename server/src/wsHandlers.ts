@@ -41,6 +41,12 @@ export function handleMessage(room: Room, ws: WebSocket, raw: string): void {
     case 'respondUndo':
       result = room.respondUndo(seat, !!msg.accept);
       break;
+    case 'offerRematch':
+      result = room.offerRematch(seat);
+      break;
+    case 'respondRematch':
+      result = room.respondRematch(seat, !!msg.accept);
+      break;
     default:
       result = { ok: false, error: `unknown message type: ${msg.type}` };
   }

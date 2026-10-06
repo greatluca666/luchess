@@ -41,4 +41,17 @@ describe('handleMessage', () => {
     handleMessage(room, ws, JSON.stringify({ type: 'move', drop: 'knight', to: 'f3' }));
     expect(room.move).toHaveBeenCalledWith('white', { drop: 'knight', to: 'f3' });
   });
+
+  it('routes rematch offers and answers', () => {
+    const ws = fakeWs();
+    const room = {
+      seatColorFor: () => 'black',
+      offerRematch: vi.fn().mockReturnValue({ ok: true }),
+      respondRematch: vi.fn().mockReturnValue({ ok: true }),
+    } as any;
+    handleMessage(room, ws, JSON.stringify({ type: 'offerRematch' }));
+    handleMessage(room, ws, JSON.stringify({ type: 'respondRematch', accept: true }));
+    expect(room.offerRematch).toHaveBeenCalledWith('black');
+    expect(room.respondRematch).toHaveBeenCalledWith('black', true);
+  });
 });

@@ -13,6 +13,7 @@ import { isNormal, type Move, type Rules } from 'chessops/types';
 import { makeFen } from 'chessops/fen';
 import { makeSquare, makeUci } from 'chessops/util';
 import { generateGameId, generateToken } from './idGen.js';
+import { generateChess960Fen } from './chess960.js';
 
 const EMPTY_BOARD_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
 
@@ -30,6 +31,9 @@ export interface StateSnapshot {
   timeControlMs: number;
   drawOfferBy: Color | null;
   undoOfferBy: Color | null;
+  rematchOfferBy: Color | null;
+  // Which seat this snapshot was built for — it changes on a rematch.
+  seat: Seat;
   result: string | null;
   resultReason: string | null;
   variant: Rules;
@@ -67,10 +71,11 @@ export class Room {
   readonly timeControlMs: number;
   readonly incrementMs: number;
   // Database id of the game currently being played in this room.
-  gameId: string;
+  gameId!: string;
   status: RoomStatus = 'waiting';
   drawOfferBy: Color | null = null;
   undoOfferBy: Color | null = null;
+  rematchOfferBy: Color | null = null;
   result: string | null = null;
   resultReason: string | null = null;
   finishedAt: number | null = null;
@@ -80,12 +85,13 @@ export class Room {
   private readonly rules: Rules;
   private readonly chess960: boolean;
   private readonly fog: boolean;
-  private chess: Position;
-  private readonly initialFen: string;
+  private readonly baseStartFen: string | undefined;
+  private chess!: Position;
+  private initialFen!: string;
   private moveHistorySan: string[] = [];
   private moves: Move[] = [];
   private repetitionCounts = new Map<string, number>();
-  private clocks: { white: number; black: number };
+  private clocks!: { white: number; black: number };
   private lastMoveAt: number | null = null;
   private seats: { white: SeatInfo | null; black: SeatInfo | null } = { white: null, black: null };
   private connections = new Map<WebSocket, Seat>();
@@ -105,21 +111,75 @@ export class Room {
     this.id = id;
     this.timeControlMs = timeControlMs;
     this.incrementMs = incrementMs;
-    this.clocks = { white: timeControlMs, black: timeControlMs };
     this.colorPref = colorPref;
     this.now = now;
     this.rules = rules;
     this.chess960 = chess960;
     this.fog = fog;
+    this.baseStartFen = startFen;
+    this.startNewGame(startFen);
+  }
+
+  // Everything that belongs to one game rather than to the room and its
+  // seats — set up for the first game and again for every rematch.
+  private startNewGame(startFen: string | undefined): void {
     this.gameId = generateGameId();
-    this.chess = createGame(rules, startFen);
+    this.chess = createGame(this.rules, startFen);
     this.initialFen = makeFen(this.chess.toSetup());
+    this.moveHistorySan = [];
+    this.moves = [];
+    this.repetitionCounts = new Map();
     // The game's starting position is itself the first occurrence for
     // threefold-repetition purposes (per the FIDE rule), so it must be
     // recorded once here — otherwise a position that returns to the exact
     // start only twice via played moves would never reach a recorded count
     // of 3.
     this.recordAndCountRepetition();
+    this.clocks = { white: this.timeControlMs, black: this.timeControlMs };
+    this.drawOfferBy = null;
+    this.undoOfferBy = null;
+    this.rematchOfferBy = null;
+    this.result = null;
+    this.resultReason = null;
+    this.finishedAt = null;
+    this.persisted = false;
+    const bothSeated = this.seats.white !== null && this.seats.black !== null;
+    this.status = bothSeated ? 'playing' : 'waiting';
+    this.lastMoveAt = bothSeated ? this.now() : null;
+  }
+
+  offerRematch(seat: Seat): ActionResult {
+    if (this.status !== 'finished') return { ok: false, error: 'game is not finished' };
+    if (seat === 'spectator') return { ok: false, error: 'spectators cannot offer rematch' };
+    // Both players asking for a rematch is the same as one accepting.
+    if (this.rematchOfferBy && this.rematchOfferBy !== seat) {
+      this.startRematch();
+      return { ok: true };
+    }
+    this.rematchOfferBy = seat;
+    return { ok: true };
+  }
+
+  respondRematch(seat: Seat, accept: boolean): ActionResult {
+    if (this.status !== 'finished') return { ok: false, error: 'game is not finished' };
+    if (seat === 'spectator') return { ok: false, error: 'spectators cannot respond' };
+    if (!this.rematchOfferBy || this.rematchOfferBy === seat) {
+      return { ok: false, error: 'no pending rematch offer for you' };
+    }
+    if (accept) this.startRematch();
+    else this.rematchOfferBy = null;
+    return { ok: true };
+  }
+
+  // Same room and settings, colours swapped. Each player keeps their token,
+  // which from now on resolves to the other colour when they reconnect.
+  private startRematch(): void {
+    this.seats = { white: this.seats.black, black: this.seats.white };
+    for (const [ws, seat] of this.connections) {
+      if (seat === 'white') this.connections.set(ws, 'black');
+      else if (seat === 'black') this.connections.set(ws, 'white');
+    }
+    this.startNewGame(this.chess960 ? generateChess960Fen() : this.baseStartFen);
   }
 
   connect(ws: WebSocket, token?: string): { seat: Seat; token?: string } {
@@ -328,6 +388,8 @@ export class Room {
       timeControlMs: this.timeControlMs,
       drawOfferBy: this.drawOfferBy,
       undoOfferBy: this.undoOfferBy,
+      rematchOfferBy: this.rematchOfferBy,
+      seat: viewer,
       result: this.result,
       resultReason: this.resultReason,
       variant: this.rules,

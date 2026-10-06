@@ -126,6 +126,52 @@ describe('full game integration', () => {
     // Codes start at 100000, so this one can never exist.
     expect((await fetch(`${base}/api/rooms/000000`)).status).toBe(404);
   });
+
+  it('plays a rematch in the same room with colours swapped and stores both games', async () => {
+    server = createApp({ dbPath: ':memory:' });
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const port = (server.address() as AddressInfo).port;
+    const base = `http://localhost:${port}`;
+    const { roomId } = await (
+      await fetch(`${base}/api/games`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeControlMs: 0, colorPref: 'white' }),
+      })
+    ).json();
+
+    const a = new WebSocket(`ws://localhost:${port}/ws/${roomId}`);
+    expect((await waitForMessage(a, (m) => m.type === 'joined')).seat).toBe('white');
+    const b = new WebSocket(`ws://localhost:${port}/ws/${roomId}`);
+    await waitForMessage(b, (m) => m.type === 'joined');
+
+    const over1 = waitForMessage(b, (m) => m.type === 'state' && m.status === 'finished');
+    a.send(JSON.stringify({ type: 'resign' }));
+    await over1;
+
+    const offered = waitForMessage(b, (m) => m.type === 'state' && m.rematchOfferBy === 'white');
+    a.send(JSON.stringify({ type: 'offerRematch' }));
+    await offered;
+    const restartA = waitForMessage(a, (m) => m.type === 'state' && m.status === 'playing');
+    const restartB = waitForMessage(b, (m) => m.type === 'state' && m.status === 'playing');
+    b.send(JSON.stringify({ type: 'respondRematch', accept: true }));
+    const [stateA, stateB] = await Promise.all([restartA, restartB]);
+    expect(stateA.seat).toBe('black');
+    expect(stateB.seat).toBe('white');
+    expect(stateA.historySan).toEqual([]);
+
+    const over2 = waitForMessage(a, (m) => m.type === 'state' && m.status === 'finished');
+    b.send(JSON.stringify({ type: 'resign' }));
+    await over2;
+
+    const games = await (await fetch(`${base}/api/games`)).json();
+    expect(games).toHaveLength(2);
+    expect(games[0].id).not.toBe(games[1].id);
+    for (const game of games) expect(game.id).not.toBe(roomId);
+
+    a.close();
+    b.close();
+  });
 });
 
 function waitForMessage(ws: WebSocket, predicate: (msg: any) => boolean): Promise<any> {
