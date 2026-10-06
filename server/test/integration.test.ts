@@ -59,7 +59,9 @@ describe('full game integration', () => {
     const gamesRes = await fetch(`${base}/api/games`);
     const games = await gamesRes.json();
     expect(games).toHaveLength(1);
-    expect(games[0].id).toBe(roomId);
+    // Games are stored under their own id, so one room can hold many games.
+    expect(games[0].id).toMatch(/^[A-Za-z0-9]{8}$/);
+    expect(games[0].id).not.toBe(roomId);
     expect(games[0].result).toBe('0-1');
 
     clientA.close();
@@ -103,6 +105,26 @@ describe('full game integration', () => {
 
     white.close();
     black.close();
+  });
+
+  it('reports whether a room code exists', async () => {
+    server = createApp({ dbPath: ':memory:' });
+    await new Promise<void>((resolve) => server!.listen(0, resolve));
+    const base = `http://localhost:${(server.address() as AddressInfo).port}`;
+    const { roomId } = await (
+      await fetch(`${base}/api/games`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeControlMs: 0, colorPref: 'white' }),
+      })
+    ).json();
+
+    const found = await fetch(`${base}/api/rooms/${roomId}`);
+    expect(found.status).toBe(200);
+    expect(await found.json()).toEqual({ roomId, status: 'waiting' });
+
+    // Codes start at 100000, so this one can never exist.
+    expect((await fetch(`${base}/api/rooms/000000`)).status).toBe(404);
   });
 });
 

@@ -12,7 +12,7 @@ import { normalizeMove, type Position } from 'chessops/chess';
 import { isNormal, type Move, type Rules } from 'chessops/types';
 import { makeFen } from 'chessops/fen';
 import { makeSquare, makeUci } from 'chessops/util';
-import { generateToken } from './idGen.js';
+import { generateGameId, generateToken } from './idGen.js';
 
 const EMPTY_BOARD_FEN = '8/8/8/8/8/8/8/8 w - - 0 1';
 
@@ -66,6 +66,8 @@ export class Room {
   readonly id: string;
   readonly timeControlMs: number;
   readonly incrementMs: number;
+  // Database id of the game currently being played in this room.
+  gameId: string;
   status: RoomStatus = 'waiting';
   drawOfferBy: Color | null = null;
   undoOfferBy: Color | null = null;
@@ -109,6 +111,7 @@ export class Room {
     this.rules = rules;
     this.chess960 = chess960;
     this.fog = fog;
+    this.gameId = generateGameId();
     this.chess = createGame(rules, startFen);
     this.initialFen = makeFen(this.chess.toSetup());
     // The game's starting position is itself the first occurrence for

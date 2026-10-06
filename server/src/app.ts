@@ -74,6 +74,15 @@ export function createApp(options: AppOptions): http.Server {
     res.json(game);
   });
 
+  app.get('/api/rooms/:code', (req, res) => {
+    const room = roomManager.get(req.params.code);
+    if (!room) {
+      res.status(404).json({ error: 'not found' });
+      return;
+    }
+    res.json({ roomId: room.id, status: room.status });
+  });
+
   app.get('/game/:roomId', (_req, res) => {
     res.sendFile(path.join(clientDist, 'game.html'));
   });
@@ -127,7 +136,7 @@ export function createApp(options: AppOptions): http.Server {
     if (room.status === 'finished' && !room.isPersisted()) {
       const snapshot = room.getSnapshot();
       saveGame(db, {
-        id: room.id,
+        id: room.gameId,
         pgn: room.getPgn(),
         result: room.result!,
         resultReason: room.resultReason!,

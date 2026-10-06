@@ -1,9 +1,16 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 
 // Excludes visually ambiguous characters (0/O, 1/l/I).
 const ALPHABET = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ';
 
-export function generateRoomId(length = 8): string {
+// Room numbers are what people type or read out to each other: six digits,
+// never starting with 0.
+export function generateRoomCode(): string {
+  return String(randomInt(100000, 1000000));
+}
+
+// One per game, for the history database — a room hosts many games.
+export function generateGameId(length = 8): string {
   return generateId(length);
 }
 

@@ -36,4 +36,9 @@ describe('RoomManager', () => {
     manager.sweep(now);
     expect(manager.get(room.id)).toBeDefined();
   });
+
+  it('names rooms with six-digit codes', () => {
+    const manager = new RoomManager();
+    expect(manager.createRoom(0, 'white').id).toMatch(/^[1-9]\d{5}$/);
+  });
 });
